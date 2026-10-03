@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Additional full-stack and system design questions publicly reported by Atlassian candidates."><title>Candidate-Reported Topics · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="candidate-questions" data-title="Candidate-Reported Topics"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Candidate-Reported Topics</span></nav>
+<header class="page-header"><div class="page-kicker">Research-backed question map</div><h1>Additional candidate-reported topics</h1><p class="lead">These reports help you practise breadth, but they are not a guaranteed question bank. Exact prompts, level, role and follow-ups vary. The top three detailed playbooks remain your first priority.</p>
+<div class="page-meta"><span class="badge verified">Public candidate reports</span><span class="meta-pill">Concise preparation</span><span class="meta-pill">Source-labelled</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout warning"><span class="callout-title">Evidence and interpretation</span><p>A candidate report confirms only what that candidate described. Where a report names a broad system without exact requirements, this page provides a preparation outline and labels it as an expected approach—not as the candidate’s undisclosed solution.</p></div>
+
+<h2>Detailed playbooks already covered</h2>
+<div class="card-grid">
+<article class="card"><div class="card-number">Repeatedly reported</div><h3>Product-agnostic tagging</h3><p>Cross-product tags, content lookup, popular tags, permissions, Top-K and future-product extensibility.</p><a class="card-link" href="tagging-system.html">Open detailed playbook →</a></article>
+<article class="card"><div class="card-number">Full-stack candidate report</div><h3>Jira / Trello board</h3><p>Cards, statuses, priorities, drag-and-drop ordering, optimistic UI and collaboration.</p><a class="card-link" href="jira-board.html">Open detailed playbook →</a></article>
+<article class="card"><div class="card-number">Recent candidate report</div><h3>Popular-content feed</h3><p>Engagement events, Top-N ranking and real-time client updates.</p><a class="card-link" href="popular-feed.html">Open detailed playbook →</a></article>
+</div>
+
+<h2>1. Real-time chat system</h2>
+<div class="page-meta"><span class="badge verified">Reported in 2026 full-stack experience</span><span class="meta-pill">Frontend-heavy</span></div>
+<h3>Question shape</h3>
+<p>Design a real-time chat experience with message history, delivery/read receipts, presence, offline resilience and scalable connections.</p>
+<h3>What is being tested</h3>
+<p>Communication choice, client optimistic state, message identity/order, WebSocket lifecycle, offline persistence, idempotency and backend partitioning.</p>
+<h3>Expected approach</h3>
+<ol>
+<li>Clarify one-to-one versus group, attachments, history, receipts, presence and ordering.</li>
+<li>Generate <code>clientMessageId</code> before send; render locally as pending.</li>
+<li>Use WebSocket for live delivery and HTTPS for history/large uploads.</li>
+<li>Partition durable messages by conversation ID; assign per-conversation sequence.</li>
+<li>Retry with the same message ID; deduplicate at the server.</li>
+<li>Persist pending/recent state in IndexedDB and catch up after the last sequence.</li>
+</ol>
+<h3>Likely follow-ups</h3>
+<div class="details-stack">
+<details><summary>How do you preserve ordering?</summary><div class="details-content"><p>Guarantee order within one conversation, not globally. Use a server-assigned conversation sequence and display provisional client messages until acknowledged/reconciled.</p></div></details>
+<details><summary>How do you handle multiple devices?</summary><div class="details-content"><p>Each device has its own connection/cursor; server fan-out targets active devices. Read state is a user/conversation projection and updates idempotently by sequence/time.</p></div></details>
+<details><summary>What should not be stored with messages?</summary><div class="details-content"><p>Presence and typing are ephemeral best-effort state. Keep durable message history separate.</p></div></details>
+</div>
+<h3>Common mistakes</h3>
+<p>Claiming global ordering, using only WebSocket without history recovery, omitting client-generated IDs, treating presence as perfectly consistent, or ignoring slow-client backpressure.</p>
+
+<h2>2. Notion / Confluence-style notes application</h2>
+<div class="page-meta"><span class="badge verified">Reported in full-stack interview listings</span></div>
+<h3>Question shape</h3>
+<p>Design a page/block-based note-taking application with hierarchy, autosave, search, sharing, version history and optionally real-time collaboration.</p>
+<h3>What is being tested</h3>
+<p>Document model, frontend editor state, autosave, block ordering, permissions, search indexing, offline/conflict strategy and the judgment to avoid CRDTs until required.</p>
+<h3>Expected approach</h3>
+<ol>
+<li>Scope create/edit pages, page tree, blocks, sharing and search.</li>
+<li>Model <code>Page</code> and ordered <code>Block</code> entities; use rank keys for block reorder.</li>
+<li>Use local editor state plus debounced versioned autosave.</li>
+<li>Store snapshots/deltas for version history based on scale and restore needs.</li>
+<li>Publish update events to search and realtime collaboration projections.</li>
+<li>Start with optimistic concurrency or block-level conflict; introduce OT/CRDT only for simultaneous character editing.</li>
+</ol>
+<h3>Likely follow-ups</h3>
+<div class="details-stack">
+<details><summary>How would two people edit the same paragraph?</summary><div class="details-content"><p>Clarify whether simultaneous character-level editing is required. For it, use an OT/CRDT-based operation model and session service; for simpler collaboration, block-level version conflicts may be sufficient.</p></div></details>
+<details><summary>How do permissions inherit through page hierarchy?</summary><div class="details-content"><p>Define parent inheritance plus explicit overrides, compute/evaluate policy with versioned caches, and invalidate descendants on policy changes. Search results still require permission safety.</p></div></details>
+<details><summary>How do you autosave without overloading the backend?</summary><div class="details-content"><p>Debounce/coalesce local changes, send operation/version batches, retry idempotently and persist pending edits locally.</p></div></details>
+</div>
+<h3>Common mistakes</h3>
+<p>Storing an entire giant document blob for every keystroke, introducing CRDTs without requirement, ignoring page-tree permissions, or claiming search is immediately consistent with the source.</p>
+
+<h2>3. Distributed job scheduler</h2>
+<div class="page-meta"><span class="badge verified">Older Atlassian-reported design question</span><span class="meta-pill">Recurring jobs</span></div>
+<h3>Question shape</h3>
+<p>Design a scheduler that executes recurring work—for example a job every ten minutes—with retries, status, cancellation and distributed workers.</p>
+<h3>What is being tested</h3>
+<p>Due-job indexing, distributed claiming/leases, at-least-once execution, idempotent effects, retries, dead-letter handling, recurring-time semantics and observability.</p>
+<h3>Expected approach</h3>
+<ol>
+<li>Store job definition, next run time, schedule/timezone, status and version.</li>
+<li>Scheduler instances claim due jobs atomically through row locking/compare-and-set lease.</li>
+<li>Enqueue an execution with unique ID; workers heartbeat and acknowledge.</li>
+<li>Use at-least-once delivery and require idempotent handlers.</li>
+<li>On failure, exponential backoff and bounded retries, then dead-letter/manual action.</li>
+<li>Compute the next occurrence from schedule policy; handle DST explicitly.</li>
+</ol>
+<h3>Likely follow-ups</h3>
+<div class="details-stack">
+<details><summary>Worker completes the side effect but crashes before acknowledgment?</summary><div class="details-content"><p>The execution is redelivered. The handler uses an idempotency key or side-effect record so the repeated delivery returns the prior result rather than repeating the effect.</p></div></details>
+<details><summary>Millions of jobs fire at 9:00 AM?</summary><div class="details-content"><p>Shard due-job index, distribute queue partitions, reserve capacity/priority, apply tenant quotas and allow a bounded scheduling delay if the SLA permits.</p></div></details>
+<details><summary>Exactly once?</summary><div class="details-content"><p>Explain why the practical target is at-least-once delivery with effectively-once business effects.</p></div></details>
+</div>
+<h3>Common mistakes</h3>
+<p>One scheduler process scanning the entire table, no lease expiry, claiming exactly-once, no idempotency or ignoring timezone/DST.</p>
+
+<h2>4. Google Sheets-style collaborative application</h2>
+<div class="page-meta"><span class="badge verified">Candidate-reported system-design topic</span></div>
+<h3>Question shape</h3>
+<p>Design a spreadsheet-like web application, including client-server flow, APIs, data model, formulas/queries, collaboration and optimization.</p>
+<h3>What is being tested</h3>
+<p>Sparse data model, large-grid rendering, formula dependency graph, recalculation, batch updates, collaboration and separation of durable cell state from ephemeral selection/presence.</p>
+<h3>Expected approach</h3>
+<ol>
+<li>Scope workbook/sheets/cells, formulas, sharing and collaboration.</li>
+<li>Store sparse non-empty cells keyed by sheet/row/column; version updates.</li>
+<li>Maintain a formula dependency graph and recalculate affected cells in topological order; detect cycles.</li>
+<li>Virtualize rows/columns in the browser and fetch visible ranges/chunks.</li>
+<li>Batch edits and stream committed changes; recover by version/sequence.</li>
+<li>Move heavy recalculation to workers while preserving deterministic results.</li>
+</ol>
+<h3>Likely follow-ups</h3>
+<div class="details-stack">
+<details><summary>How do you represent a million-by-million grid?</summary><div class="details-content"><p>Store sparse cells, not every coordinate. Fetch and render visible ranges, cache chunks and maintain dimensions/format metadata separately.</p></div></details>
+<details><summary>How do formulas update?</summary><div class="details-content"><p>Parse dependencies, update graph, detect cycles and recalculate only transitive dependents. Version computations so stale async results cannot overwrite newer input.</p></div></details>
+</div>
+<h3>Common mistakes</h3>
+<p>Materializing the entire grid, rendering every cell, recalculating the whole workbook on each edit, or ignoring circular references and concurrent changes.</p>
+
+<h2>5. Social-media-style feed or content system</h2>
+<div class="page-meta"><span class="badge verified">Reported in a P50 backend experience</span></div>
+<h3>Question shape</h3>
+<p>Design a social-media-like application or feed; candidate reports mention discussion of tables, database choice, APIs, pagination, indexing and user experience.</p>
+<h3>What is being tested</h3>
+<p>Access-pattern-driven schema, feed generation, cursor pagination, indexes, fan-out strategy and ability to connect backend decisions to the user experience.</p>
+<h3>Expected approach</h3>
+<p>Clarify follow model, timeline ordering, posting, likes/comments and personalization. Start with pull-on-read for moderate scale; consider fan-out-on-write for normal users and pull/merge for high-fan-out accounts. Use stable cursor ordering, materialized candidates and eventual counters.</p>
+<h3>Common mistakes</h3>
+<p>Offset pagination on a changing feed, synchronous fan-out to millions of followers, one database choice without access patterns, or no strategy for deleted/private content.</p>
+
+<h2>6. Browser-to-backend request and authentication flow</h2>
+<div class="page-meta"><span class="badge verified">Reported full-stack craft discussion</span><span class="meta-pill">Discussion topic</span></div>
+<h3>Question shape</h3>
+<p>Explain what happens when a user logs in, clicks checkout/pay, or performs another web action—from DOM event and validation through DNS/TLS, API, authentication, backend services, database and rendering.</p>
+<h3>What is being tested</h3>
+<p>Breadth, sequencing, authentication versus authorization, tokens/cookies, CSRF/XSS, request IDs, backend processing, data fetching, state updates and failure UX.</p>
+<h3>Expected approach</h3>
+<div class="interview-flow">
+<div class="flow-step" data-step="1"><strong>Browser event</strong><span>Handler, client validation, disabled/retry state and idempotency key for high-risk action.</span></div>
+<div class="flow-step" data-step="2"><strong>Network</strong><span>DNS, connection/TLS, HTTP request, headers/cookie/token.</span></div>
+<div class="flow-step" data-step="3"><strong>Edge</strong><span>CDN/WAF/gateway, rate limit, request/trace ID.</span></div>
+<div class="flow-step" data-step="4"><strong>Application</strong><span>Authenticate, authorize, validate, service transaction and downstream calls.</span></div>
+<div class="flow-step" data-step="5"><strong>Response</strong><span>Status/body, cache semantics, state reconciliation, accessibility and error/unknown-outcome handling.</span></div>
+</div>
+<h3>Common mistakes</h3>
+<p>Mixing authentication with authorization, storing long-lived tokens carelessly, ignoring CSRF for cookie auth, double-submitting a payment, or ending at “API returns JSON” without frontend reconciliation.</p>
+
+<h2>7. Critique an existing architecture</h2>
+<div class="page-meta"><span class="badge verified">Candidate-reported architecture review</span></div>
+<h3>Question shape</h3>
+<p>You are shown an existing multi-service diagram and asked to find flaws or evolve it. Candidate reports mention separate load balancers, shared databases, server-local authentication/logging and queue/external-service failures.</p>
+<h3>What is being tested</h3>
+<p>Ability to reason from failure modes rather than redraw everything, identify single points of failure/coupling, and prioritize changes by customer risk.</p>
+<h3>Expected approach</h3>
+<ol>
+<li>Ask for the system goal, SLO and known pain.</li>
+<li>Trace one request and one failure path.</li>
+<li>Classify risks: correctness/security, availability, scale, operability and maintainability.</li>
+<li>Prioritize the highest-impact issue and propose incremental remediation.</li>
+<li>State migration/rollout and metrics—not only the destination diagram.</li>
+</ol>
+<h3>Common mistakes</h3>
+<p>Calling every shared component “bad,” replacing technology without evidence, missing auth/data ownership, or proposing a complete rewrite without migration.</p>
+
+<h2>Question-priority matrix</h2>
+<div class="table-wrap"><table><thead><tr><th>Topic</th><th>Practice depth</th><th>Why</th></tr></thead><tbody>
+<tr><td>Tagging system</td><td>Two full 60-minute mocks</td><td>Most repeatedly reported and broadest Atlassian fit.</td></tr>
+<tr><td>Jira/Trello board</td><td>One full mock + follow-up drill</td><td>Strong full-stack signal: UI, order, realtime, workflow.</td></tr>
+<tr><td>Popular feed</td><td>One full mock</td><td>Events, Top-K, frontend freshness and permissions.</td></tr>
+<tr><td>Realtime chat</td><td>45-minute design</td><td>Reported for frontend-heavy full-stack; reusable realtime patterns.</td></tr>
+<tr><td>Notion/Confluence notes</td><td>45-minute design</td><td>Document model, editor state and collaboration.</td></tr>
+<tr><td>Job scheduler</td><td>30-minute backend drill</td><td>Retries, leases, idempotency and distributed work.</td></tr>
+<tr><td>Request/auth lifecycle</td><td>15-minute verbal drill</td><td>Likely full-stack breadth follow-up.</td></tr>
+<tr><td>Google Sheets</td><td>Concept review</td><td>Older but useful for dependency/realtime reasoning.</td></tr>
+</tbody></table></div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://medium.com/@nitesh14028/atlassian-interview-experience-oct-25-to-feb-26-cd0c75481739" target="_blank" rel="noreferrer">2026 frontend-heavy full-stack candidate report</a><p>Real-time chat, request lifecycle, authentication, offline resilience and frontend performance themes.</p></div>
+<div class="reference-item"><a href="https://medium.com/@ritikajoshi141/i-interviewed-at-atlassian-heres-everything-you-need-to-know-b126553a03d5" target="_blank" rel="noreferrer">Full-stack candidate report</a><p>Describes end-to-end web/system thinking and full-stack craft discussion.</p></div>
+<div class="reference-item"><a href="https://www.glassdoor.com/Interview/Atlassian-Full-Stack-Software-Engineer-Interview-Questions-EI_IE115699.0%2C9_KO10%2C38.htm" target="_blank" rel="noreferrer">Glassdoor full-stack interview reports</a><p>Public listings associated with Jira-board and Notion-style topics; access may vary.</p></div>
+<div class="reference-item"><a href="https://www.glassdoor.com/Interview/Atlassian-Full-Stack-Engineer-Interview-Questions-EI_IE115699.0%2C9_KO10%2C29.htm" target="_blank" rel="noreferrer">Glassdoor Full Stack Engineer reports</a><p>Publicly associated with a recurring job-scheduler question.</p></div>
+<div class="reference-item"><a href="https://www.geeksforgeeks.org/interview-experiences/atlassian-interview-experience-for-sde/" target="_blank" rel="noreferrer">Candidate report: Google Sheets-style design</a><p>Discusses client-server architecture, APIs, database design, queries and optimization.</p></div>
+</div>
+
+<div class="page-actions"><span>Use these for breadth only after the top three are strong.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="concepts.html"><small>Previous</small><strong>Concept reference</strong></a><a class="next" href="../quick-revision/index.html"><small>Next</small><strong>Quick revision →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

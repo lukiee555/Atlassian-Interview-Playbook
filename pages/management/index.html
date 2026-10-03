@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Atlassian management interview format, pricing-first story portfolio and preparation framework."><title>Management Interview &middot; Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="management-overview" data-title="Management Interview"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><span>Management Interview</span></nav>
+<header class="page-header"><div class="page-kicker">Round 3 · Leadership, ownership and role fit</div><h1>Management Interview</h1><p class="lead">Prepare to defend the scope of your work, the decisions you personally made, the business or customer outcome, how you handled people and conflict, and the direction in which you want to grow.</p><div class="page-meta"><span class="badge verified">Official: 60 minutes</span><span class="meta-pill">Scenario based</span><span class="meta-pill">Project deep dives</span><span class="badge high">Pricing-first portfolio</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout info"><span class="callout-title">How this section is organized</span><p><strong>Official</strong> content comes from Atlassian's published interview guidance. <strong>Candidate-reported</strong> questions come from public interview accounts and can vary. <strong>Personalized preparation</strong> uses your confirmed project history and raw stories; uncertain metrics are deliberately left qualitative.</p></div>
+
+<h2>What Atlassian is likely evaluating</h2>
+<div class="competency-grid">
+<article class="competency-card"><div class="competency-icon">01</div><h3>Outcome ownership</h3><p>Did you understand why the work mattered, own the hard parts, ship safely and stay engaged through production?</p></article>
+<article class="competency-card"><div class="competency-icon">02</div><h3>Judgment</h3><p>Can you explain alternatives, trade-offs, risk, reversibility and why your decision was appropriate at that moment?</p></article>
+<article class="competency-card"><div class="competency-icon">03</div><h3>Influence</h3><p>Can you align people you do not manage, challenge senior people respectfully and make cross-team work easier?</p></article>
+<article class="competency-card"><div class="competency-icon">04</div><h3>Learning</h3><p>Do feedback and failures produce observable changes in your behavior, systems and team practices?</p></article>
+<article class="competency-card"><div class="competency-icon">05</div><h3>Technical credibility</h3><p>Can you go deep enough to show that the decision was yours, without turning a management answer into a design lecture?</p></article>
+<article class="competency-card"><div class="competency-icon">06</div><h3>Career fit</h3><p>Is your next step coherent with your experience, motivation and the scope of the full-stack role?</p></article>
+</div>
+<p class="source-note">Official references: <a href="https://www.atlassian.com/dam/jcr:aef2ccf9-8430-4e24-b58e-e779b2a6298d/P30-P50-Fullstack-Craft-Guide.pdf" target="_blank" rel="noreferrer">Atlassian Fullstack Engineering Interview Guide</a> and <a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Engineering Interview Handbook</a>.</p>
+
+<h2>Your management story portfolio</h2>
+<div class="callout success"><span class="callout-title">Portfolio correction</span><p>Wally is one useful full-stack story, but it is no longer the default answer. Your strongest portfolio is led by pricing architecture, migration safety, high-volume data processing, production correctness, cross-team execution and operational simplification.</p></div>
+<div class="table-wrap"><table><thead><tr><th>Story</th><th>Best use</th><th>Strongest evidence</th><th>Watch-out</th></tr></thead><tbody>
+<tr><td><strong>Pricing fallback + national-price aggregation</strong></td><td>Most complex project, end-to-end ownership, technical judgment</td><td>Three-stage event flow, safe bypass modes, distributed-state decision, partial-batch isolation, retriable failure and comprehensive tests</td><td>Use interview-safe names; do not expose repository, branch, config keys or exact internal identifiers</td></tr>
+<tr><td><strong>Five Spark jobs consolidated into one</strong></td><td>Initiative, simplification, scale, operational impact</td><td>One pipeline handled 165M+ records and replaced five workflows</td><td>Add a verified runtime/cost/support result only if you can defend it</td></tr>
+<tr><td><strong>Staged pricing migration</strong></td><td>Risk management, migration judgment, rollout strategy</td><td>Control, parallel comparison and target modes made cutover observable and reversible</td><td>Be ready to explain exit criteria for temporary complexity</td></tr>
+<tr><td><strong>International production deployment failure</strong></td><td>Failure, accountability, production learning</td><td>Runtime option parity gap between market pipelines after a Java upgrade</td><td>Own your validation gap without blaming the colleague who performed the upgrade</td></tr>
+<tr><td><strong>Production disagreement over business behavior</strong></td><td>Conflict, challenging senior people, judgment under pressure</td><td>Used temporary containment, then sought business confirmation instead of making a permanent engineering-owned business rule</td><td>Explain the opposing view fairly</td></tr>
+<tr><td><strong>Large rollout defect triage</strong></td><td>Team-first behavior, leadership without authority, execution</td><td>Volunteered for unglamorous end-to-end triage until ownership became stable</td><td>Avoid unverified participant counts</td></tr>
+<tr><td><strong>Mentoring engineers</strong></td><td>Coaching, developing people, psychological safety</td><td>Mentored junior and vendor engineers; coached one technically capable engineer on communication and implementation ownership</td><td>State a concrete observed outcome before the interview</td></tr>
+<tr><td><strong>Feedback on backend visibility</strong></td><td>Receiving feedback, self-awareness, career ownership</td><td>Started design documents, solution presentations and senior-engineer reviews to make backend judgment visible</td><td>Frame it as your communication gap, not leadership's failure to notice</td></tr>
+<tr><td><strong>Promo pricing operations UI in two days</strong></td><td>Urgency, customer empathy, beyond-the-minimum ownership</td><td>Delivered implementation, testing and production deployment; replaced a script-only handoff with a usable UI</td><td>Weekend work is context, not the achievement</td></tr>
+<tr><td><strong>Wally streaming experience</strong></td><td>Full-stack product judgment, frontend/customer experience</td><td>Advocated for streaming responses instead of a simpler wait-for-complete response</td><td>Do not claim measured engagement without evidence</td></tr>
+</tbody></table></div>
+
+<h2>Choose the story from the question</h2>
+<div class="story-matrix">
+<div><strong>"Most complex project"</strong><p>Pricing fallback and derived-price aggregation. Use Wally only when the interviewer specifically wants user-facing/mobile breadth.</p></div>
+<div><strong>"A change you initiated"</strong><p>Spark consolidation. Backup: operations UI instead of a script-only process.</p></div>
+<div><strong>"A difficult technical decision"</strong><p>Database read versus in-memory cache; explicit retry versus silent degraded pricing; staged modes versus big-bang migration.</p></div>
+<div><strong>"Feedback you received"</strong><p>Backend contributions were not visible; you changed how you document, present and seek architectural review.</p></div>
+<div><strong>"A failure you owned"</strong><p>International production deployment failed because runtime parity had not been validated.</p></div>
+<div><strong>"Conflict with senior people"</strong><p>Production containment was acceptable temporarily, but permanent behavior needed business confirmation.</p></div>
+<div><strong>"Helping someone succeed"</strong><p>One-sprint coaching for a technically capable engineer who struggled to communicate and demonstrate implementation ownership.</p></div>
+<div><strong>"Team before self"</strong><p>Volunteered for cross-team issue triage when the rotation was not working.</p></div>
+<div><strong>"Customer-first choice"</strong><p>Primary: fail/retry rather than silently publish an incomplete derived price. Backup: Promo UI; Wally streaming.</p></div>
+</div>
+
+<h2>STAR-L plus three lenses</h2>
+<div class="star-grid">
+<div class="star-step"><strong>S</strong><span>Situation</span><p>Business/customer context and the real tension. Keep this short.</p></div>
+<div class="star-step"><strong>T</strong><span>Task</span><p>Your responsibility, authority, constraints and what success meant.</p></div>
+<div class="star-step"><strong>A</strong><span>Action</span><p>What you decided, rejected, communicated, implemented and changed.</p></div>
+<div class="star-step"><strong>R</strong><span>Result</span><p>Verified customer, business, operational and team outcomes.</p></div>
+<div class="star-step"><strong>L</strong><span>Learning</span><p>What changed permanently in how you work.</p></div>
+</div>
+<div class="callout success"><span class="callout-title">Three lenses for every deep dive</span><p><strong>Business:</strong> why this mattered. <strong>Technical:</strong> the hard decision and trade-off. <strong>People:</strong> who depended on you, disagreed, or became more effective.</p></div>
+
+<h2>A likely 60-minute flow</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">0–5 min</div><h3>Introduction and role fit</h3><p>Pricing-first career narrative, why full stack, why Atlassian and hands-on technical-lead direction.</p></div>
+<div class="timeline-item"><div class="timeline-time">5–25 min</div><h3>Project deep dive</h3><p>Prepare the pricing fallback/aggregation story as the default master project.</p></div>
+<div class="timeline-item"><div class="timeline-time">25–45 min</div><h3>Behavioral scenarios</h3><p>Feedback, failure, conflict, mentorship, initiative, team-first work and customer judgment.</p></div>
+<div class="timeline-item"><div class="timeline-time">45–55 min</div><h3>Motivation and career direction</h3><p>Senior/staff IC path, broader product ownership and cross-team technical influence.</p></div>
+<div class="timeline-item"><div class="timeline-time">55–60 min</div><h3>Your questions</h3><p>Ask about scope, ownership, decision-making, collaboration and what strong performance looks like.</p></div>
+</div>
+
+<h2>Interview confidentiality guard</h2>
+<div class="callout warning"><span class="callout-title">Use public-safe abstractions</span><p>This site is suitable for GitHub Pages, so the personalized scripts avoid repository names, branch names, exact configuration keys, private store identifiers and internal company names. In the interview, describe the architecture and decision precisely while keeping proprietary identifiers generalized.</p></div>
+
+<h2>Open the next layer</h2>
+<div class="card-grid">
+<article class="card"><div class="card-number">Research</div><h3>Question bank</h3><p>Official themes, candidate-reported questions and the story to use for each.</p><a class="card-link" href="questions.html">Open question bank →</a></article>
+<article class="card"><div class="card-number">Practice</div><h3>Adaptable answers</h3><p>Pricing-first scripts for ownership, feedback, failure, conflict, mentoring and motivation.</p><a class="card-link" href="answers.html">Open answer library →</a></article>
+<article class="card"><div class="card-number">Depth</div><h3>Project deep dives</h3><p>Business, technical and people narratives for five major projects.</p><a class="card-link" href="project-deep-dives.html">Open deep dives →</a></article>
+<article class="card"><div class="card-number">Simulation</div><h3>60-minute mock</h3><p>Random questions, timers, interruption prompts and a manager scorecard.</p><a class="card-link" href="mock.html">Run mock →</a></article>
+</div>
+
+<div class="page-actions"><span>Start with the master project, then practise the difficult behavioral stories.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="../system-design/candidate-reported.html"><small>Previous</small><strong>Candidate-reported design topics</strong></a><a class="next" href="questions.html"><small>Next</small><strong>Management question bank →</strong></a></nav>
+
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

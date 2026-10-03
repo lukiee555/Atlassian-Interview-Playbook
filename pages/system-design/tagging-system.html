@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Complete interview playbook for designing a product-agnostic tagging system across Jira, Confluence and Bitbucket."><title>Product-Agnostic Tagging System · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="tagging-system" data-title="Product-Agnostic Tagging System"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Tagging System</span></nav>
+<header class="page-header"><div class="page-kicker">Detailed playbook 1 · Highest priority</div><h1>Product-agnostic tagging across Jira, Confluence and Bitbucket</h1><p class="lead">Build one tagging platform that can attach tags to different product content, retrieve content by tag, calculate popular tags, respect tenant permissions, and onboard future products without redesigning the core.</p>
+<div class="page-meta"><span class="badge verified">Repeated candidate-reported prompt</span><span class="meta-pill">Multi-tenant</span><span class="meta-pill">Search + Top-K</span><span class="meta-pill">Permissions</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout success"><span class="callout-title">Why this is your first system-design practice</span><p>This question has appeared repeatedly in public Atlassian candidate reports, including around your experience level. It tests API/data design, extensibility, permissions, search, streaming popularity and the ability to connect frontend experience to backend guarantees.</p></div>
+
+<h2>Interviewer question</h2>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>Atlassian products contain different content types—for example Jira issues, Confluence pages and Bitbucket pull requests. Design a product-agnostic system that lets users add, remove and update tags, open a tag to see associated content, and view popular tags. New products should be easy to add.</blockquote></div></div>
+
+<h2>What should I identify first?</h2>
+<div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body"><ol>
+<li><strong>The cross-product identity problem:</strong> one association must reference content without Jira-, Confluence- or Bitbucket-specific columns.</li>
+<li><strong>The permission problem:</strong> a tag index must never reveal content a user cannot currently access.</li>
+<li><strong>The two read patterns:</strong> tags on one item, and content associated with one tag.</li>
+<li><strong>The derived view:</strong> popular tags should not scan all associations on every request.</li>
+<li><strong>The consistency split:</strong> tag mutations need durable correctness; search/typeahead/popularity can usually be briefly stale.</li>
+</ol></div></div>
+
+<div class="say-this">The core difficulty is not storing a label. It is defining a stable cross-product content reference, enforcing tenant and content permissions, supporting both association directions efficiently, and maintaining derived search/popularity views without coupling the core service to each product.</div>
+
+<h2>Clarifying questions</h2>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Why it changes the design</th><th>Assumption used in this playbook</th></tr></thead><tbody>
+<tr><td>Are tags global, tenant-scoped, project-scoped or personal?</td><td>Defines uniqueness, cache keys and access.</td><td>Tenant-scoped; optional project scope can be added later.</td></tr>
+<tr><td>Are tag names case-sensitive? Is whitespace normalized?</td><td>Affects identity and duplicate races.</td><td>Display name preserved; normalized lower-case name is unique per tenant.</td></tr>
+<tr><td>What does “update” mean: rename a tag or replace an association?</td><td>Rename is a tag mutation; association update is remove/add.</td><td>Support rename and add/remove association.</td></tr>
+<tr><td>How is popularity defined?</td><td>Association count, clicks and recent usage need different pipelines.</td><td>Weighted recent add/view events, top tags per tenant, freshness under five minutes.</td></tr>
+<tr><td>Must content-by-tag results obey product permissions?</td><td>Determines search/permission architecture.</td><td>Yes, on every result page.</td></tr>
+<tr><td>How quickly must mutation, search and popularity update?</td><td>Defines sync versus async boundaries.</td><td>Mutation read-after-write immediate; search/typeahead seconds; popularity under five minutes.</td></tr>
+<tr><td>Do we need bulk tagging?</td><td>Changes API, partial failures and rate controls.</td><td>Single-item mutation initially; batch API can be added with per-item result.</td></tr>
+<tr><td>What happens when content or a tenant is deleted?</td><td>Requires tombstone/cleanup and privacy handling.</td><td>Products emit lifecycle events; associations are removed asynchronously with auditability.</td></tr>
+</tbody></table></div>
+
+<h2>Requirements</h2>
+<h3>Functional requirements</h3>
+<ul class="checklist">
+<li>Create or reuse a tenant-scoped tag and associate it with supported product content.</li>
+<li>Remove a tag association and rename a tag with optimistic concurrency.</li>
+<li>List tags attached to a content item.</li>
+<li>Open a tag and page through authorized associated content across products.</li>
+<li>Search/type ahead tag names.</li>
+<li>Show popular tags for a tenant and time window.</li>
+<li>Onboard a new product through a common content/permission contract.</li>
+<li>Audit tag and association mutations.</li>
+</ul>
+<h3>Non-functional requirements</h3>
+<ul>
+<li><strong>Correctness:</strong> association create/delete is durable and idempotent.</li>
+<li><strong>Security:</strong> strict tenant isolation and permission-aware results.</li>
+<li><strong>Latency:</strong> mutation p95 under 300 ms; common reads under 200 ms excluding slow downstream permission systems.</li>
+<li><strong>Availability:</strong> core tagging remains available when popularity/search consumers are delayed.</li>
+<li><strong>Extensibility:</strong> new products implement an adapter/event contract rather than change the tag schema.</li>
+<li><strong>Operability:</strong> per-tenant metrics, audit trail, replayable events and safe schema evolution.</li>
+</ul>
+<h3>Out of scope for the first pass</h3>
+<p>Automatic AI tag recommendations, complex taxonomy inheritance, cross-tenant public tags and full document search. State these exclusions so the discussion can go deep on the core.</p>
+
+<h2>Scale assumptions</h2>
+<div class="callout info"><span class="callout-title">Interview assumptions—not Atlassian production facts</span><p>Use round numbers only to justify decisions. Ask the interviewer to replace them if they want a different scale.</p></div>
+<div class="table-wrap"><table><thead><tr><th>Dimension</th><th>Assumption</th><th>Design consequence</th></tr></thead><tbody>
+<tr><td>Tenants</td><td>300k; highly uneven sizes</td><td>Tenant-aware keys, noisy-neighbour controls and shard mapping.</td></tr>
+<tr><td>Tag associations</td><td>1 billion total</td><td>Indexed access patterns, partitioning plan and cursor pagination.</td></tr>
+<tr><td>Peak reads</td><td>100k requests/second</td><td>Cache hot tag metadata/pages; scale stateless APIs horizontally.</td></tr>
+<tr><td>Peak mutations</td><td>20k/second</td><td>Idempotent writes, primary-store capacity and durable event publication.</td></tr>
+<tr><td>Popular-tag freshness</td><td>Under five minutes</td><td>Stream/periodic aggregation; no synchronous global counting.</td></tr>
+<tr><td>Result size</td><td>Some tags link millions of items</td><td>Stable cursor ordering, bounded pages and hot-key mitigation.</td></tr>
+</tbody></table></div>
+
+<h2>Build the design progressively</h2>
+<h3>Step 1: Make the basic workflow correct</h3>
+<p>Start with the web client, a Tag API/service and a relational primary store. A normalized content reference avoids product-specific foreign-key columns.</p>
+<div class="diagram-shell"><div class="diagram-title">Version 1 · Correct core</div><pre class="mermaid">
+flowchart LR
+  U[User] --> UI[Product UI / shared tag picker]
+  UI --> API[Tag API]
+  API --> TS[Tag Service]
+  TS --> DB[(PostgreSQL: tags + associations)]
+</pre><div class="diagram-note">This supports durable create/delete/list operations, but permissions, search and popular tags are not complete yet.</div></div>
+
+<h3>Step 2: Add permission-safe cross-product access</h3>
+<p>The Tag Service knows only a generic <code>ContentReference</code>. Product adapters or a common permission service resolve metadata and authorize the requesting user. The tag database must not be treated as proof of content access.</p>
+<pre><code class="language-json">{
+  "tenantId": "tenant-42",
+  "productType": "JIRA_ISSUE",
+  "contentId": "ISSUE-8f4a..."
+}</code></pre>
+
+<h3>Step 3: Derive search and popularity asynchronously</h3>
+<p>A mutation must not succeed in the database and disappear before an event is published. Store an outbox row in the same transaction, then publish it to a durable stream. Independent consumers update search/typeahead, popularity, audit and cleanup projections.</p>
+
+<h3>Step 4: Add cache and partitioning only where load demands it</h3>
+<p>Cache tag metadata, popular-tag lists and optionally authorized result pages with careful keys and short TTLs. Partition the primary data by tenant (and potentially hashed content/tag within very large tenants) when a single database cluster is no longer sufficient.</p>
+
+<h2>Final high-level architecture</h2>
+<div class="diagram-shell"><div class="diagram-title">Derived architecture</div><pre class="mermaid">
+flowchart TB
+  subgraph Client[Browser / product clients]
+    UI[Tag picker + content-by-tag page]
+    SC[Server-state cache]
+  end
+  UI --> SC
+  SC -->|HTTPS| GW[API Gateway / BFF]
+  GW --> AUTH[AuthN + tenant context]
+  AUTH --> TAG[Tag Service]
+  TAG --> PERM[Permission / Product Adapter Gateway]
+  PERM --> J[Jira adapter]
+  PERM --> C[Confluence adapter]
+  PERM --> B[Bitbucket adapter]
+  TAG --> REDIS[(Redis cache)]
+  TAG --> PG[(PostgreSQL / sharded relational store)]
+  TAG --> OUT[(Transactional outbox)]
+  OUT --> PUB[Outbox publisher]
+  PUB --> BUS[[Kafka / durable event stream]]
+  BUS --> SEARCH[Search projection consumer]
+  SEARCH --> ES[(Search index)]
+  BUS --> POP[Popularity stream processor]
+  POP --> TOP[(Redis sorted sets / Top-K store)]
+  BUS --> AUDIT[Audit + lifecycle consumers]
+  GW --> QUERY[Tag Query API]
+  QUERY --> PG
+  QUERY --> ES
+  QUERY --> TOP
+  QUERY --> PERM
+</pre><div class="diagram-note">Core association writes remain correct if search or popularity pipelines lag. Every user-visible content result is permission-filtered.</div></div>
+
+<h2>Data model</h2>
+<h3>Relational schema</h3>
+<pre><code class="language-sql">CREATE TABLE tag (
+    tenant_id         UUID        NOT NULL,
+    tag_id            UUID        NOT NULL,
+    normalized_name   VARCHAR(100) NOT NULL,
+    display_name      VARCHAR(100) NOT NULL,
+    version           BIGINT      NOT NULL DEFAULT 0,
+    created_by        UUID        NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL,
+    updated_at        TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (tenant_id, tag_id),
+    UNIQUE (tenant_id, normalized_name)
+);
+
+CREATE TABLE tag_association (
+    tenant_id       UUID         NOT NULL,
+    tag_id          UUID         NOT NULL,
+    product_type    VARCHAR(40)  NOT NULL,
+    content_id      VARCHAR(160) NOT NULL,
+    created_by      UUID         NOT NULL,
+    created_at      TIMESTAMPTZ  NOT NULL,
+    PRIMARY KEY (tenant_id, tag_id, product_type, content_id),
+    FOREIGN KEY (tenant_id, tag_id)
+      REFERENCES tag (tenant_id, tag_id)
+);
+
+-- Reverse lookup: tags attached to one content item.
+CREATE INDEX idx_association_by_content
+ON tag_association (tenant_id, product_type, content_id, tag_id);
+
+-- Stable page through a high-cardinality tag.
+CREATE INDEX idx_association_by_tag_created
+ON tag_association (tenant_id, tag_id, created_at DESC,
+                    product_type, content_id);
+
+CREATE TABLE tag_outbox (
+    event_id        UUID PRIMARY KEY,
+    tenant_id       UUID NOT NULL,
+    aggregate_type  VARCHAR(30) NOT NULL,
+    aggregate_id    UUID NOT NULL,
+    event_type      VARCHAR(60) NOT NULL,
+    payload         JSONB NOT NULL,
+    occurred_at     TIMESTAMPTZ NOT NULL,
+    published_at    TIMESTAMPTZ NULL
+);</code></pre>
+
+<h3>Why relational first?</h3>
+<p>Tag identity and association uniqueness need straightforward constraints and transactions, while the primary access patterns are well known. PostgreSQL is a strong first choice. At much larger scale, shard by tenant or move the association projection to a wide-column/key-value store—but retain explicit uniqueness/idempotency semantics rather than choosing NoSQL generically.</p>
+
+<h3>Cursor design</h3>
+<p>For content-by-tag results, the cursor can encode the last <code>(created_at, product_type, content_id)</code>. This yields stable keyset pagination and avoids increasingly expensive offsets.</p>
+<pre><code class="language-json">{
+  "createdAt": "2026-10-03T08:31:02Z",
+  "productType": "CONFLUENCE_PAGE",
+  "contentId": "page-123"
+}</code></pre>
+
+<h2>API design</h2>
+<div class="table-wrap"><table><thead><tr><th>Operation</th><th>Endpoint</th><th>Important contract</th></tr></thead><tbody>
+<tr><td>Add tag</td><td><code>POST /v1/content/{productType}/{contentId}/tags</code></td><td>Body has display name or tag ID; <code>Idempotency-Key</code>; returns authoritative tag association.</td></tr>
+<tr><td>Remove tag</td><td><code>DELETE /v1/content/{productType}/{contentId}/tags/{tagId}</code></td><td>Idempotent delete; 204 if already absent can simplify retries.</td></tr>
+<tr><td>Rename tag</td><td><code>PATCH /v1/tags/{tagId}</code></td><td>Body includes display name and expected version/ETag.</td></tr>
+<tr><td>Tags on item</td><td><code>GET /v1/content/{productType}/{contentId}/tags</code></td><td>Permission check on the content reference.</td></tr>
+<tr><td>Content by tag</td><td><code>GET /v1/tags/{tagId}/content?cursor=&amp;limit=</code></td><td>Permission-filtered results; stable cursor; partial product degradation policy.</td></tr>
+<tr><td>Suggestions</td><td><code>GET /v1/tags/suggestions?q=&amp;limit=</code></td><td>Tenant-scoped normalized prefix; debounced and rate-limited.</td></tr>
+<tr><td>Popular tags</td><td><code>GET /v1/tags/popular?window=7d&amp;limit=20</code></td><td>Derived result with <code>asOf</code> timestamp.</td></tr>
+</tbody></table></div>
+
+<h3>Example add-tag request</h3>
+<pre><code class="language-http">POST /v1/content/JIRA_ISSUE/issue-7fd3/tags
+Authorization: Bearer &lt;token&gt;
+Idempotency-Key: 01J9...
+Content-Type: application/json
+
+{
+  "displayName": "Customer Escalation"
+}</code></pre>
+<pre><code class="language-json">{
+  "tag": {
+    "id": "tag-08d2",
+    "displayName": "Customer Escalation",
+    "version": 3
+  },
+  "association": {
+    "productType": "JIRA_ISSUE",
+    "contentId": "issue-7fd3",
+    "createdAt": "2026-10-03T09:12:00Z"
+  }
+}</code></pre>
+
+<h2>Write path: add a tag</h2>
+<div class="diagram-shell"><div class="diagram-title">Synchronous correctness + asynchronous projections</div><pre class="mermaid">
+sequenceDiagram
+  actor U as User
+  participant UI as Tag Picker
+  participant API as Tag API
+  participant P as Permission Adapter
+  participant DB as PostgreSQL
+  participant O as Outbox Publisher
+  participant K as Event Stream
+  participant X as Search/Popularity Consumers
+
+  U->>UI: Select or create tag
+  UI->>API: POST association + idempotency key
+  API->>P: Can actor edit content?
+  P-->>API: Allowed
+  API->>DB: Tx: upsert tag, insert association, insert outbox
+  DB-->>API: Commit authoritative state
+  API-->>UI: 201 association
+  UI->>UI: Reconcile optimistic chip
+  O->>DB: Read unpublished outbox rows
+  O->>K: TagAssociated event
+  K-->>O: Ack
+  O->>DB: Mark published
+  K->>X: At-least-once delivery
+  X->>X: Deduplicate by eventId, update projections
+</pre><div class="diagram-note">A unique association key and idempotency record make client retries safe. Consumers still deduplicate because the stream is at least once.</div></div>
+
+<h2>Read path: content by tag</h2>
+<ol>
+<li>Validate tenant context and that the user can see the tag itself.</li>
+<li>Fetch candidate content references from the association store or search index using a cursor.</li>
+<li>Batch-resolve metadata and permissions through product adapters/common services.</li>
+<li>Drop inaccessible/deleted items and fetch additional candidates until the page is filled or a scan limit is reached.</li>
+<li>Return a mixed product result with a continuation cursor and optional partial-degradation metadata.</li>
+</ol>
+<div class="callout warning"><span class="callout-title">Permission-filtering trade-off</span><p>Filtering after candidate retrieval is correct but can underfill pages and add latency. Embedding permission principals in the search index can be faster but risks stale access after revocation. A strong answer presents the trade-off and chooses based on permission complexity/freshness requirements.</p></div>
+
+<h2>Frontend architecture</h2>
+<h3>Shared tag picker</h3>
+<ul class="checklist">
+<li>Debounce suggestions and cancel stale network requests.</li>
+<li>Separate local input/open state from server state such as suggestions and current tags.</li>
+<li>Use stable normalized-name duplicate detection, while preserving display casing.</li>
+<li>Add/remove chips optimistically with a client operation ID; reconcile the authoritative response.</li>
+<li>Rollback and announce validation/permission failures accessibly.</li>
+<li>Support keyboard navigation, focus management and screen-reader labels.</li>
+<li>Do not cache one tenant’s suggestions under another tenant’s key.</li>
+</ul>
+
+<h3>Client state split</h3>
+<div class="table-wrap"><table><thead><tr><th>State</th><th>Where</th><th>Why</th></tr></thead><tbody>
+<tr><td>Input text, picker open state, highlighted option</td><td>Local component state</td><td>Ephemeral interaction state.</td></tr>
+<tr><td>Suggestions, tags on content, content-by-tag pages</td><td>Server-state cache</td><td>Remote authoritative data with fetching, staleness and retry.</td></tr>
+<tr><td>Pending association mutation</td><td>Mutation/optimistic layer</td><td>Rollback and deduplication by operation ID.</td></tr>
+<tr><td>Tenant/user/session</td><td>Application/auth context</td><td>Keys every request/cache safely.</td></tr>
+</tbody></table></div>
+
+<h3>Optimistic add flow</h3>
+<ol>
+<li>Generate <code>operationId</code>; add a chip in <em>pending</em> state.</li>
+<li>Submit request with idempotency key.</li>
+<li>On success, replace pending representation with authoritative tag ID/version.</li>
+<li>On validation conflict, reuse the existing tag returned or refetch.</li>
+<li>On permission/server failure, remove the chip and show an actionable message.</li>
+<li>If a real-time echo arrives, correlate by operation/event ID to avoid a duplicate chip.</li>
+</ol>
+
+<h2>Backend components and boundaries</h2>
+<div class="table-wrap"><table><thead><tr><th>Component</th><th>Responsibility</th><th>What it should not own</th></tr></thead><tbody>
+<tr><td>Gateway/BFF</td><td>Authentication, tenant context, routing, coarse rate limits.</td><td>Tag business rules or product-specific permission logic.</td></tr>
+<tr><td>Tag command service</td><td>Normalization, identity, association invariants, transaction and outbox.</td><td>Product metadata schema.</td></tr>
+<tr><td>Tag query service</td><td>Read models, cursor pagination, cache, permission orchestration.</td><td>Trusting index membership as authorization.</td></tr>
+<tr><td>Product/permission gateway</td><td>Common contract for authorize/batch metadata/lifecycle.</td><td>Tag persistence.</td></tr>
+<tr><td>Search projection</td><td>Typeahead and denormalized candidate lookup.</td><td>Authoritative permission or mutation state.</td></tr>
+<tr><td>Popularity processor</td><td>Rolling counts/scores and Top-K materialization.</td><td>Blocking association writes.</td></tr>
+<tr><td>Audit/lifecycle consumers</td><td>Immutable audit, content/tenant deletion cleanup.</td><td>Synchronous request availability.</td></tr>
+</tbody></table></div>
+
+<h2>Search and indexing</h2>
+<p>Tag name typeahead can use a normalized prefix index in PostgreSQL initially. A dedicated search index becomes valuable for fuzzy search, aliases, large scale and mixed content result ranking.</p>
+<ul>
+<li>Index documents are tenant-scoped and versioned.</li>
+<li>Consumers use event ID for deduplication and aggregate version to reject stale out-of-order updates.</li>
+<li>Expose <code>asOf</code> or accept brief staleness for popular/search views.</li>
+<li>Deletion and permission-revocation events receive high priority.</li>
+<li>Run reconciliation jobs comparing primary data and index projections.</li>
+</ul>
+
+<h2>Popular tags</h2>
+<h3>Define the metric before the technology</h3>
+<p>A simple all-time association count may favour old tags permanently. A more useful tenant dashboard can score recent events:</p>
+<pre><code class="language-text">score = 3 × tag_association_adds
+      + 1 × content_by_tag_clicks
+      + 0.5 × searches
+      with time decay or fixed windows</code></pre>
+<p>Keep weights configurable and version the scoring model so results can be recomputed.</p>
+
+<h3>Processing design</h3>
+<ol>
+<li>Tag and click events enter the durable stream with <code>eventId</code>, tenant, tag, actor and timestamp.</li>
+<li>A stream processor deduplicates and updates windowed per-tenant/tag aggregates.</li>
+<li>Materialize top tags in Redis sorted sets or a Top-K table keyed by tenant/window.</li>
+<li>Serve the dashboard from the materialized result with an <code>asOf</code> timestamp.</li>
+<li>Periodically recompute from durable events/aggregates to repair drift and scoring changes.</li>
+</ol>
+
+<h2>Caching strategy</h2>
+<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Key</th><th>Invalidation / caution</th></tr></thead><tbody>
+<tr><td>Tag metadata</td><td><code>tenant:tagId:version</code></td><td>Invalidate/update on rename; versioned keys simplify races.</td></tr>
+<tr><td>Popular tags</td><td><code>tenant:window:scoreVersion</code></td><td>Short TTL or processor writes; brief staleness is acceptable.</td></tr>
+<tr><td>Suggestions</td><td><code>tenant:normalizedPrefix</code></td><td>Short TTL; beware high cardinality and rename/create lag.</td></tr>
+<tr><td>Content-by-tag page</td><td>Tenant, tag, cursor, permission context/version</td><td>Hard to cache safely when permissions are user-specific; cache candidates or shared metadata instead.</td></tr>
+</tbody></table></div>
+
+<h2>Consistency model</h2>
+<div class="table-wrap"><table><thead><tr><th>Behaviour</th><th>Guarantee</th><th>Why</th></tr></thead><tbody>
+<tr><td>Add/remove association</td><td>Strong within primary transaction</td><td>User must not lose or duplicate a committed mutation.</td></tr>
+<tr><td>Read own mutation</td><td>Read primary or reconcile returned representation</td><td>Immediate UI confirmation.</td></tr>
+<tr><td>Typeahead/search index</td><td>Eventual, seconds</td><td>Derived projection; core writes stay available.</td></tr>
+<tr><td>Popular tags</td><td>Eventual, under five minutes</td><td>Aggregated derived view.</td></tr>
+<tr><td>Permissions</td><td>Authoritative at result/mutation time</td><td>Stale access can expose protected content.</td></tr>
+<tr><td>Audit events</td><td>Durable at-least-once with deduplication</td><td>Outbox prevents silent loss.</td></tr>
+</tbody></table></div>
+
+<h2>Security, tenancy and lifecycle</h2>
+<ul class="checklist">
+<li>Derive tenant from authenticated context; do not trust a free-form tenant ID in the body.</li>
+<li>Include tenant in every primary key, unique constraint, cache key, event and trace.</li>
+<li>Authorize mutation against the underlying content and user capability.</li>
+<li>Authorize content-by-tag results at query time; index membership is not permission proof.</li>
+<li>Audit actor, content reference, before/after tag and operation ID without sensitive payloads.</li>
+<li>Process content deletion, tenant deletion and permission changes with tombstones/reconciliation.</li>
+<li>Rate-limit suggestion/create endpoints and cap tag name/association counts.</li>
+<li>Escape displayed tag names and handle Unicode normalization consistently.</li>
+</ul>
+
+<h2>Failure handling</h2>
+<div class="table-wrap"><table><thead><tr><th>Failure</th><th>Behaviour</th><th>Recovery</th></tr></thead><tbody>
+<tr><td>Primary database unavailable</td><td>Fail writes; do not acknowledge mutation. Reads may use a bounded stale cache only if permission-safe.</td><td>Retry with jitter at clients/gateway; failover; alert on SLO.</td></tr>
+<tr><td>Event stream unavailable</td><td>Core transaction commits with outbox row; derived views lag.</td><td>Publisher retries; backlog metric; replay from outbox.</td></tr>
+<tr><td>Duplicate event</td><td>Consumer sees same <code>eventId</code>.</td><td>Dedup store/idempotent upsert; unique event application key.</td></tr>
+<tr><td>Out-of-order rename/delete</td><td>Stale projection event arrives late.</td><td>Aggregate version; reject updates older than current index version.</td></tr>
+<tr><td>Permission service slow</td><td>Content-by-tag page latency or underfilled results.</td><td>Batch calls, deadlines, fail closed, partial product status where acceptable.</td></tr>
+<tr><td>Search index down</td><td>Suggestions/search degrade.</td><td>Fallback to prefix DB query for bounded use or show unavailable; mutations continue.</td></tr>
+<tr><td>Redis popularity store down</td><td>Popular dashboard unavailable/stale.</td><td>Serve last durable snapshot or omit widget; rebuild from aggregates.</td></tr>
+<tr><td>Content deleted without event</td><td>Dangling association appears as missing metadata.</td><td>Filter at read, tombstone, periodic reconciliation and cleanup.</td></tr>
+</tbody></table></div>
+
+<h2>Scaling plan</h2>
+<ol>
+<li><strong>Stateless API:</strong> horizontal autoscaling behind the gateway.</li>
+<li><strong>Tenant-aware database:</strong> begin with relational partitioning; assign large tenants to dedicated shards if necessary.</li>
+<li><strong>Hot tag mitigation:</strong> cursor reads, cached metadata, read replicas and optional hash buckets for extremely high-cardinality projections.</li>
+<li><strong>Popularity hot keys:</strong> local/windowed partial aggregates combined downstream rather than one global counter write.</li>
+<li><strong>Batch permissions:</strong> resolve 50–100 candidate references per product call rather than one network call per result.</li>
+<li><strong>Bounded fan-out:</strong> group candidates by product and apply timeouts/circuit breakers.</li>
+<li><strong>Backpressure:</strong> monitor consumer lag, throttle non-critical analytics and retain replayable events.</li>
+<li><strong>Noisy-neighbour controls:</strong> per-tenant quotas, rate limits and metrics.</li>
+</ol>
+
+<h2>Trade-offs to state explicitly</h2>
+<div class="table-wrap"><table><thead><tr><th>Decision</th><th>Benefit</th><th>Cost / alternative</th></tr></thead><tbody>
+<tr><td>Relational authoritative store</td><td>Transactions, uniqueness, straightforward two-way indexes.</td><td>Requires sharding at extreme scale; wide-column store may scale associations differently.</td></tr>
+<tr><td>Generic content reference</td><td>Future products without schema migration.</td><td>No database foreign key to product-owned content; lifecycle needs events/reconciliation.</td></tr>
+<tr><td>Outbox + event stream</td><td>No lost projection event after committed mutation.</td><td>At-least-once duplicates and operational complexity.</td></tr>
+<tr><td>Permission filtering at read</td><td>Current access correctness.</td><td>Latency and page underfill; indexed principals are faster but can be stale.</td></tr>
+<tr><td>Eventual search/popularity</td><td>Core write availability and independent scaling.</td><td>Briefly stale derived views; expose freshness and reconcile.</td></tr>
+<tr><td>Optimistic UI</td><td>Fast tag interaction.</td><td>Requires rollback, idempotency and echo reconciliation.</td></tr>
+</tbody></table></div>
+
+<h2>Interviewer follow-ups</h2>
+<section><div class="details-actions" data-details-actions><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div><div class="details-stack">
+<details><summary>How do you add a fourth product without changing the Tag Service?</summary><div class="details-content"><p>The product implements the common adapter contract for batch permission checks, metadata lookup and lifecycle events, and registers a new <code>productType</code>. The association schema already stores a generic content reference. Version the contract and use capability discovery if products support different features.</p></div></details>
+<details><summary>How do you prevent two users creating “Bug” and “bug” concurrently?</summary><div class="details-content"><p>Normalize consistently and enforce <code>UNIQUE(tenant_id, normalized_name)</code>. Both requests may race; one insert succeeds, the other handles the unique conflict by loading and returning the existing tag. An idempotency key handles retries from the same operation.</p></div></details>
+<details><summary>How do you calculate Top-K popular tags?</summary><div class="details-content"><p>Emit association/search/click events, deduplicate, aggregate by tenant/tag/window in a stream processor and maintain a Redis sorted set or materialized Top-K table. Periodically recompute from durable aggregates/events so model changes and missed updates can be repaired.</p></div></details>
+<details><summary>Kafka, SQS or RabbitMQ?</summary><div class="details-content"><p>I choose from the requirement. A replayable ordered event log with multiple independent consumers and stream processing favours Kafka-like infrastructure. A managed work queue with simple competing consumers may favour SQS. Complex routing/acknowledgement patterns can favour RabbitMQ. The design needs durability, at-least-once handling and replay for projections; product platform standards also matter.</p></div></details>
+<details><summary>PostgreSQL, Cassandra or DynamoDB?</summary><div class="details-content"><p>PostgreSQL first for tag uniqueness, transactions and known indexes. A key-value/wide-column projection can serve massive content-by-tag/tag-by-content access if scale demands it, with carefully designed partition and sort keys. I would not give up correctness constraints without an explicit scaling reason.</p></div></details>
+<details><summary>What if one tag is attached to 100 million items?</summary><div class="details-content"><p>Never load/count synchronously. Use keyset pagination, precomputed count, cached metadata and read partitioning. If one partition becomes hot, bucket associations by a deterministic hash and merge page candidates, accepting additional query complexity. Search/index projections can shoulder ranked browsing.</p></div></details>
+<details><summary>How do you handle a permission revocation after results were cached?</summary><div class="details-content"><p>Do not rely on a long-lived user-result cache. Re-authorize before returning content, use short-lived/versioned permission caches, consume revocation events for fast invalidation, and fail closed if the authoritative permission dependency is unavailable. Cache metadata separately from access decisions where possible.</p></div></details>
+<details><summary>How do you rename or merge tags?</summary><div class="details-content"><p>Rename uses expected version and the normalized-name uniqueness constraint. Merge is a separate workflow: create/identify target, migrate associations idempotently in batches, emit mapping/tombstone events, redirect old tag during transition, then retire it. Avoid one giant transaction.</p></div></details>
+<details><summary>What if the event is published twice?</summary><div class="details-content"><p>At-least-once delivery is expected. Consumers track <code>eventId</code> or use idempotent upserts and version checks. Popularity updates must not blindly increment twice; deduplicate before applying or aggregate from a unique event log.</p></div></details>
+<details><summary>What happens if the database commits but the API times out?</summary><div class="details-content"><p>The client retries with the same idempotency key. The service returns the stored result instead of creating a duplicate. The unique association constraint is a final safeguard. The client can also refetch authoritative tags after an ambiguous timeout.</p></div></details>
+<details><summary>How would you support bulk tagging?</summary><div class="details-content"><p>Define atomicity explicitly. For large batches, accept a job with an idempotency key, validate permissions in batches, process chunks, expose per-item status and make retries safe. Avoid one transaction across products or thousands of rows.</p></div></details>
+<details><summary>How would you observe this system?</summary><div class="details-content"><p>Track mutation/read latency and error rate by tenant/product, permission dependency latency, unique-conflict rate, idempotency hits, database hot partitions, cache hit rate, outbox age, stream consumer lag, index freshness, dangling-reference rate and popularity snapshot age. Trace operation/event IDs across sync and async paths.</p></div></details>
+<details><summary>How would you roll out a schema or event change?</summary><div class="details-content"><p>Use additive database migration, dual-read/write only when necessary, versioned events with tolerant consumers, canary by tenant, projection backfill and rollback that does not require old consumers to understand new mandatory fields. Monitor lag/error before expanding.</p></div></details>
+</div></section>
+
+<h2>What to draw in the interview</h2>
+<ol>
+<li>Write the three workflows and permission/freshness assumptions.</li>
+<li>Draw Browser → Gateway → Tag Service → PostgreSQL.</li>
+<li>Add the generic <code>ContentReference</code> and Product/Permission Gateway.</li>
+<li>Add Outbox → Event Stream only when popular/search requirements are discussed.</li>
+<li>Add Search and Top-K projections; label them eventually consistent.</li>
+<li>Draw one write sequence and one permission-aware read sequence.</li>
+<li>Mark tenant boundary, idempotency and the first partition key.</li>
+</ol>
+
+<h2>90-second final summary</h2>
+<div class="say-this">I designed a tenant-scoped Tag Service around a generic content reference, so Jira, Confluence, Bitbucket and future products do not create product-specific columns. PostgreSQL is the authoritative store for normalized tag identity and unique associations. Every mutation authorizes against the underlying content, writes the association and an outbox event atomically, and returns the authoritative representation for optimistic client reconciliation. A durable stream updates typeahead/search, audit and a windowed Top-K popularity projection; those views may be briefly stale without blocking core writes. Content-by-tag reads fetch candidates with cursor pagination and batch-authorize them before returning results. I would scale APIs horizontally, shard by tenant, mitigate hot tags and enforce per-tenant quotas. The main trade-off is current permission correctness versus the latency of permission filtering; I chose correctness and batch/caching optimizations rather than trusting a stale index.</div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">Candidate-reported tagging prompt</a><p>Public report describing cross-product tags, content-by-tag and popular-tag experiences.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-accepted" target="_blank" rel="noreferrer">Candidate report: Top-K follow-ups</a><p>Public report noting API, queue and database trade-off discussion around popular tags.</p></div>
+<div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Official Atlassian engineering interview guide</a><p>System-design evaluation and communication expectations.</p></div>
+</div>
+
+<div class="page-actions"><span>Practise once with guidance, then reproduce it from a blank page.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="index.html"><small>Previous</small><strong>Round overview</strong></a><a class="next" href="jira-board.html"><small>Next</small><strong>Jira / Trello board →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

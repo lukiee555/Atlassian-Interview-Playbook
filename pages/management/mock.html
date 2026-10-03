@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive Atlassian management interview mock, timer, question deck and scorecard."><title>Management Mock Interview &middot; Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="management-mock" data-title="Management Mock Interview"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Management</a><span aria-hidden="true">/</span><span>Mock Interview</span></nav>
+<header class="page-header"><div class="page-kicker">Simulation - 60 minutes</div><h1>Management mock interview</h1><p class="lead">Practise under interruption. A good story is not one you can recite perfectly; it is one you can defend when the interviewer changes direction.</p><div class="page-meta"><span class="badge high">Interactive question deck</span><span class="meta-pill">3-minute timer</span><span class="meta-pill">Scorecard</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<h2>Run this as a real 60-minute interview</h2>
+<div class="practice-deck" data-question-deck>
+<div class="deck-controls"><button class="primary-button" type="button" data-draw-question>Draw a management question</button><button class="action-button" type="button" data-timer-seconds="180">Start 3-minute timer</button><span class="timer-display" data-timer-display>3:00</span></div>
+<div class="drawn-question" data-drawn-question>Press "Draw" and answer without opening your notes.</div>
+<div class="question-pool" hidden>
+<span data-question-item>Walk me through a project you owned end to end. What was personally yours?</span>
+<span data-question-item>Tell me about the hardest technical decision you made and the alternative you rejected.</span>
+<span data-question-item>Describe a time you influenced several teams without formal authority.</span>
+<span data-question-item>Tell me about a disagreement. What did the other person believe, and what happened?</span>
+<span data-question-item>Describe a production issue. What was your responsibility, and what changed permanently?</span>
+<span data-question-item>Tell me about a process or architecture improvement you initiated.</span>
+<span data-question-item>What feedback changed the way you work?</span>
+<span data-question-item>Tell me about someone you helped become more effective.</span>
+<span data-question-item>Why Atlassian, why full stack, and why now?</span>
+<span data-question-item>What do you want to grow into over the next two to three years?</span>
+<span data-question-item>Tell me about a time you put a shared team outcome ahead of your preferred work.</span>
+<span data-question-item>Describe a customer-first decision where the easiest engineering option was not the right one.</span>
+</div>
+</div>
+
+<h2>Suggested mock agenda</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">0-5</div><h3>Introduction</h3><p>Tell me about yourself. Why this role?</p></div>
+<div class="timeline-item"><div class="timeline-time">5-25</div><h3>Project deep dive</h3><p>Use the pricing fallback/aggregation project as the default. Interrupt repeatedly on personal ownership, trade-off, failure semantics and impact.</p></div>
+<div class="timeline-item"><div class="timeline-time">25-40</div><h3>Conflict + leadership</h3><p>Production disagreement or cross-team triage, then the mentoring or backend-visibility feedback story.</p></div>
+<div class="timeline-item"><div class="timeline-time">40-50</div><h3>Failure + learning</h3><p>International deployment runtime-parity failure; probe accountability, recovery and permanent readiness change.</p></div>
+<div class="timeline-item"><div class="timeline-time">50-55</div><h3>Career fit</h3><p>Why Atlassian, goals, strength and development area.</p></div>
+<div class="timeline-item"><div class="timeline-time">55-60</div><h3>Your questions</h3><p>Ask two thoughtful questions, then close.</p></div>
+</div>
+
+<h2>Interviewer interruption bank</h2>
+<div class="details-stack" data-details-actions>
+<div class="details-actions"><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div>
+<details><summary>You keep saying "we." What did you do?</summary><div class="details-content"><p>Pause and name your decisions, artifacts, implementation, coordination and production responsibility. Then give the team clear credit for its part.</p></div></details>
+<details><summary>That sounds like implementation. What was the business impact?</summary><div class="details-content"><p>Return to the customer/business invariant, verified scale and operating outcome. If the exact money/time metric is unavailable, state the observable result without inventing a number.</p></div></details>
+<details><summary>Why did anyone disagree with you?</summary><div class="details-content"><p>Present the other position as reasonable under its constraints. A one-sided conflict story signals low empathy and weak judgment.</p></div></details>
+<details><summary>What did you get wrong?</summary><div class="details-content"><p>Own a specific assumption, timing, communication or control gap. Explain the permanent change and later evidence.</p></div></details>
+<details><summary>How did another person become more successful?</summary><div class="details-content"><p>Give evidence of increased independence, capability, confidence, delivery or ownership - not only that you answered questions.</p></div></details>
+<details><summary>Would you make the same decision today?</summary><div class="details-content"><p>Separate the decision quality at the time from what newer evidence would change. Avoid rewriting history.</p></div></details>
+</div>
+
+<h2>Scorecard</h2>
+<div class="score-grid">
+<div class="score-card"><strong>Ownership</strong><p>Could a listener distinguish your work from the team's?</p></div>
+<div class="score-card"><strong>Impact</strong><p>Did you connect delivery to a verified customer/business/operational result?</p></div>
+<div class="score-card"><strong>Judgment</strong><p>Did you compare real alternatives and costs?</p></div>
+<div class="score-card"><strong>People</strong><p>Did you show listening, influence, credit and trust?</p></div>
+<div class="score-card"><strong>Learning</strong><p>Did behavior or a system permanently change?</p></div>
+<div class="score-card"><strong>Control</strong><p>Was the answer concise enough for follow-ups?</p></div>
+</div>
+
+<h2>Questions to ask the engineering manager</h2>
+<ul class="checklist">
+<li>What product and technical outcomes would define success in the first six months?</li>
+<li>Where does this team currently need stronger end-to-end ownership?</li>
+<li>How are architecture decisions made when product teams and platform teams have different priorities?</li>
+<li>What differentiates engineers who grow successfully at this level?</li>
+<li>Which customer or reliability problem is most important for the team this year?</li>
+</ul>
+
+<h2>Final two-minute close</h2>
+<div class="say-this">The pattern across my strongest work is that I take ownership beyond implementation: I clarify the outcome, make trade-offs explicit, align dependencies, ship with rollback and observability, and stay with the system in production. I am looking to apply that full-stack and operational experience to a team where collaboration and customer impact are central, while continuing to grow my ability to lead across teams.</div>
+
+<div class="page-actions"><span>Practise aloud before reading the prepared answer.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="project-deep-dives.html"><small>Previous</small><strong>Project deep dives</strong></a><a class="next" href="../values/index.html"><small>Next</small><strong>Values overview &rarr;</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

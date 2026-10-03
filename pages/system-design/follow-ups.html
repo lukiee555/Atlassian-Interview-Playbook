@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="High-frequency Atlassian system design follow-up questions and strong answer frameworks."><title>System Design Follow-up Bank · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="system-followups" data-title="System Design Follow-up Bank"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Follow-up Bank</span></nav>
+<header class="page-header"><div class="page-kicker">Question ladder practice</div><h1>System-design follow-up bank</h1><p class="lead">Use one answer pattern repeatedly: clarify the failure or new constraint, preserve the core invariant, identify the affected path, choose a mechanism, state its trade-off, and explain the customer-visible behaviour.</p>
+<div class="page-meta"><span class="meta-pill">Permissions</span><span class="meta-pill">Concurrency</span><span class="meta-pill">Failures</span><span class="meta-pill">Scale</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<h2>The six-part answer pattern</h2>
+<div class="interview-flow">
+<div class="flow-step" data-step="1"><strong>Restate the new constraint</strong><span>“Now we need permission revocation within seconds…”</span></div>
+<div class="flow-step" data-step="2"><strong>Name the invariant</strong><span>What must never become incorrect or exposed?</span></div>
+<div class="flow-step" data-step="3"><strong>Locate the affected path</strong><span>Client, synchronous write, read, event pipeline or operations?</span></div>
+<div class="flow-step" data-step="4"><strong>Choose a mechanism</strong><span>Version, idempotency, partitioning, cache invalidation, retry, failover.</span></div>
+<div class="flow-step" data-step="5"><strong>State degradation and recovery</strong><span>What does the user see, and how does the system return to normal?</span></div>
+<div class="flow-step" data-step="6"><strong>State the trade-off</strong><span>Latency versus correctness, complexity versus scale, freshness versus availability.</span></div>
+</div>
+
+<h2>1. Permissions and tenant safety</h2>
+<section><div class="details-actions" data-details-actions><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div><div class="details-stack">
+<details open><summary>How would you design permissions?</summary><div class="details-content"><p><strong>What is tested:</strong> whether security is a first-class part of every path rather than a box beside the API.</p><p><strong>Strong answer:</strong> define resources and capabilities, derive tenant/user from authenticated context, enforce authorization on authoritative reads and writes, and batch permission checks for list results. Caches and indexes can accelerate candidate lookup but cannot become the only proof of access. Include audit and field/event filtering where users have partial visibility.</p></div></details>
+<details><summary>What happens when access is revoked while data is cached?</summary><div class="details-content"><p>Emit a high-priority revocation event for fast invalidation, keep permission caches short-lived/versioned and re-authorize before returning sensitive results. Do not cache long-lived personalized responses without a permission version. If the permission service is unavailable, fail closed or return fewer results rather than expose stale access.</p></div></details>
+<details><summary>How do you isolate tenants?</summary><div class="details-content"><p>Put tenant context in every key, unique constraint, cache key, event, trace and partition decision. Derive it from authentication rather than trusting request input. Add per-tenant rate limits/quotas and metrics. At larger scale, map tenants to shards and isolate exceptionally large tenants.</p></div></details>
+<details><summary>How would you prevent one tenant from affecting others?</summary><div class="details-content"><p>Use quotas, weighted fairness, per-tenant concurrency limits, partition-aware autoscaling, circuit breakers and isolated queues/partitions for heavy tenants. Monitor latency and resource use by tenant so global averages do not hide noisy neighbours.</p></div></details>
+</div></section>
+
+<h2>2. Duplicate events, retries and idempotency</h2>
+<div class="details-stack">
+<details open><summary>How do you handle duplicate events?</summary><div class="details-content"><p>Assume at-least-once delivery. Give every event a stable ID, make the consumer effect idempotent and track applied IDs or enforce a unique application key. For counters, blind increments are unsafe; deduplicate first or derive counts from a unique normalized event log.</p></div></details>
+<details><summary>What if the API times out after the database commit?</summary><div class="details-content"><p>The client retries with the same idempotency key. The service stores or derives the original result and returns it instead of repeating the effect. A domain unique constraint is the final safety boundary. The UI may refetch authoritative state after an ambiguous timeout.</p></div></details>
+<details><summary>Can you guarantee exactly-once processing?</summary><div class="details-content"><p>Not end to end across independent systems in the general case. I design at-least-once delivery with idempotent effects, transactions where the boundary is local, and an outbox/inbox or deduplication mechanism. “Effectively once” describes the resulting business effect, not magical transport semantics.</p></div></details>
+<details><summary>What is the transactional outbox solving?</summary><div class="details-content"><p>It prevents the dual-write gap where database state commits but event publication fails—or the event publishes before the state commits. The domain change and outbox row are one database transaction; a separate publisher retries. The cost is duplicate delivery and outbox operations, so consumers remain idempotent.</p></div></details>
+<details><summary>How do you handle poison messages?</summary><div class="details-content"><p>Classify retryable versus permanent failures, use bounded retries with backoff, send irrecoverable events to a dead-letter/quarantine stream with context, alert and provide replay after correction. Do not block the entire partition forever without an operational policy.</p></div></details>
+</div>
+
+<h2>3. Concurrent updates</h2>
+<div class="details-stack">
+<details open><summary>How do you handle two users updating the same item?</summary><div class="details-content"><p>Choose a product policy first. For edits where silent overwrite is harmful, include entity version/ETag and use optimistic concurrency: one succeeds; stale writes receive 409 and authoritative state. The client merges, retries or asks the user. Last-write-wins is acceptable only when explicitly chosen.</p></div></details>
+<details><summary>Optimistic or pessimistic locking?</summary><div class="details-content"><p>Optimistic locking fits user-facing systems where conflicts are relatively rare and holding locks across think time is impossible. Pessimistic locks fit short, high-contention critical sections. State the contention profile and lock scope rather than choosing by habit.</p></div></details>
+<details><summary>How do you resolve collaborative text edits?</summary><div class="details-content"><p>Start with the required granularity. Version checks or block-level conflict handling may be enough. Character-level simultaneous editing can justify operational transformation or CRDTs, which add significant complexity around operations, metadata, compaction and permissions. Do not introduce them without the collaboration requirement.</p></div></details>
+<details><summary>How do you maintain ordering under concurrent inserts?</summary><div class="details-content"><p>Use a sortable rank/sequence owned by the server, generate between neighbouring items under concurrency control, include a deterministic tie-breaker and rebalance bounded ranges when needed. For event streams, partition by the entity boundary that needs order, such as board or conversation—not globally.</p></div></details>
+</div>
+
+<h2>4. Real-time updates and reconnects</h2>
+<div class="details-stack">
+<details open><summary>How would you support real-time updates?</summary><div class="details-content"><p>Commit authoritative state first, publish an outbox event, deliver through a realtime gateway and include event ID, entity version and sequence. Authenticate/authorize subscriptions, deduplicate at clients, apply only newer versions and provide reconnect recovery. State whether SSE or WebSockets better matches the directionality.</p></div></details>
+<details><summary>WebSockets, SSE or polling?</summary><div class="details-content"><p>Polling is simplest for low-frequency/non-urgent changes. SSE provides server-to-client streaming over HTTP with straightforward reconnection. WebSockets support bidirectional, low-latency interactions but add connection lifecycle, routing and backpressure complexity. Choose from behaviour and existing infrastructure.</p></div></details>
+<details><summary>What happens when the client disconnects?</summary><div class="details-content"><p>Persist the last sequence/cursor, reconnect with exponential backoff and jitter, and request events after that sequence. If the gap is too old or large, send a resync-required response and fetch a current snapshot. Pending client mutations retain operation IDs for safe retry.</p></div></details>
+<details><summary>How do you handle slow clients?</summary><div class="details-content"><p>Bound per-connection buffers, collapse superseded state updates, apply backpressure and eventually send a resync marker/close the connection rather than consume unbounded memory. Presence/cosmetic updates can be dropped more aggressively than durable domain events.</p></div></details>
+<details><summary>How do you revoke a realtime subscription?</summary><div class="details-content"><p>Authorize on connection/subscription, consume permission-change events and close or downgrade affected subscriptions. Every mutation/read still checks authority because the socket’s original permission may be stale.</p></div></details>
+</div>
+
+<h2>5. Database and storage failures</h2>
+<div class="details-stack">
+<details open><summary>What happens if the database goes down?</summary><div class="details-content"><p>Do not acknowledge writes. Use bounded retries only for safe/idempotent operations, fail over according to the database topology and surface a clear temporary failure. Reads may use a bounded stale cache only when the product and permission model allow it. Protect the recovering database from a retry storm.</p></div></details>
+<details><summary>How do you choose SQL versus NoSQL?</summary><div class="details-content"><p>Start with invariants and access patterns. SQL is strong for transactions, uniqueness, joins and flexible query evolution. Key-value/wide-column stores fit known partition/sort-key access and very large horizontal scale. Document stores fit aggregate-shaped data. State partition key, consistency and secondary-index limits—not “NoSQL scales.”</p></div></details>
+<details><summary>How do you shard the database?</summary><div class="details-content"><p>Choose a key that aligns with isolation and common transactions—often tenant, then entity/board for very large tenants. Maintain a shard directory, avoid cross-shard transactions, plan resharding and prevent hot tenants from dominating one shard. Sharding is a later scaling step, not the first diagram.</p></div></details>
+<details><summary>What about replication lag?</summary><div class="details-content"><p>Route reads requiring read-after-write or current permissions to the primary or use a consistency token. Eventually consistent list/search reads can use replicas. Explain what stale data the customer can see and how the client reconciles.</p></div></details>
+<details><summary>How do you perform schema migration safely?</summary><div class="details-content"><p>Use expand-and-contract: add compatible fields/tables, deploy code that supports old/new, backfill gradually, switch reads, then remove old structures. Track progress, throttle impact, canary and make rollback possible without losing newly written data.</p></div></details>
+</div>
+
+<h2>6. Scaling to millions of users</h2>
+<div class="details-stack">
+<details open><summary>How would you scale this to millions of users?</summary><div class="details-content"><p>First identify the bottleneck from reads, writes, connections, storage or one hot key. Scale stateless APIs horizontally, cache safe hot reads, move secondary work async, partition data/events by an access-aligned key, batch downstream calls and enforce per-tenant quotas. Give a sequence, not a bag of technologies.</p></div></details>
+<details><summary>What is a hot partition and how do you fix it?</summary><div class="details-content"><p>A disproportionate key routes too much load to one shard/consumer. Mitigate through a better/salted partition key, local partial aggregation, dedicated capacity for hot tenants/entities, caching and product limits. Salting complicates ordered reads/aggregation, so state that trade-off.</p></div></details>
+<details><summary>How do you handle a celebrity board/tag/page?</summary><div class="details-content"><p>Separate read fan-out from the authoritative write boundary. Cache/materialize reads, isolate its event partition, combine counters hierarchically and use hierarchical pub/sub. Keep writes ordered only where necessary and monitor the entity independently.</p></div></details>
+<details><summary>How do you reduce downstream fan-out?</summary><div class="details-content"><p>Batch by product/service, cache stable metadata, denormalize safe projection fields, apply deadlines and cap candidate scans. Avoid one network call per list item. A BFF/query service can orchestrate but should not become an unbounded serial bottleneck.</p></div></details>
+<details><summary>What would you rate limit?</summary><div class="details-content"><p>Protect expensive mutation/search endpoints, abusive event producers and per-tenant resources. Use actor, tenant, token and sometimes resource keys. Return retry guidance and avoid a limiter that allows one tenant to exhaust shared capacity.</p></div></details>
+</div>
+
+<h2>7. Caching and latency</h2>
+<div class="details-stack">
+<details open><summary>What would you cache?</summary><div class="details-content"><p>Cache data that is expensive, frequently read and safe to be stale: metadata, configuration, popular snapshots and search suggestions. Be cautious with user-specific permission-sensitive results. Name the key, TTL, invalidation trigger, source of truth and behaviour on cache miss/failure.</p></div></details>
+<details><summary>How do you invalidate the cache?</summary><div class="details-content"><p>Use versioned keys or explicit update/delete events for critical changes, plus TTL as a safety net. For writes, update/invalidate after the authoritative commit. Permission revocations get priority. Accept that perfect distributed invalidation is hard and design safe staleness bounds.</p></div></details>
+<details><summary>How would you improve latency?</summary><div class="details-content"><p>Measure the path first. Common levers are batching, indexes, keyset pagination, cache, smaller payloads, parallel independent calls, edge delivery, connection reuse and moving secondary work async. State which percentile and dependency dominate rather than saying “add Redis.”</p></div></details>
+<details><summary>Why cursor pagination instead of offset?</summary><div class="details-content"><p>Keyset/cursor pagination uses an indexed sort key, remains efficient for deep pages and is more stable under concurrent inserts/deletes. Offset is simple for small/static data but can skip/duplicate items and becomes expensive at large offsets.</p></div></details>
+<details><summary>How do you cache a changing feed?</summary><div class="details-content"><p>Materialize/version snapshots and tie cursors to the snapshot. Cache candidate lists separately from user permission filtering. Signal that a new snapshot exists instead of silently mixing orders during pagination.</p></div></details>
+</div>
+
+<h2>8. Failures, observability and rollout</h2>
+<div class="details-stack">
+<details open><summary>How would you handle failures?</summary><div class="details-content"><p>Classify the component as authoritative or derived. Define timeout, retryability, idempotency, circuit-breaker/fallback, user-visible degradation, backlog/replay and alert. Preserve core invariants; degrade search, popularity or realtime before compromising correctness/security.</p></div></details>
+<details><summary>What would you monitor?</summary><div class="details-content"><p>Golden signals—latency, traffic, errors, saturation—plus domain signals: conflict/rollback, permission rejection, idempotency hits, outbox age, consumer lag, index freshness, cache hit, hot tenants, stale snapshot age and customer-visible completion. Trace operation/event IDs across async paths.</p></div></details>
+<details><summary>How would you roll out safely?</summary><div class="details-content"><p>Backward-compatible contracts, feature flag, dark/shadow reads where useful, canary by tenant, metrics and explicit rollback. For projections, dual-build and compare before switching. For data changes, use expand-and-contract.</p></div></details>
+<details><summary>How do you recover from a bad event consumer?</summary><div class="details-content"><p>Stop or isolate it, preserve the durable stream, roll back code/config, reset projection state from a known checkpoint/snapshot and replay idempotently. Version outputs so bad older writes cannot overwrite corrected state.</p></div></details>
+<details><summary>What is graceful degradation here?</summary><div class="details-content"><p>Keep the core action correct while optional experiences become stale or unavailable. Example: tag writes work while popular tags are hidden; board moves work while collaborator realtime falls back to refresh. Tell the user when freshness is reduced.</p></div></details>
+</div>
+
+<h2>Rapid two-minute drill</h2>
+<p>For each prompt below, answer aloud using the six-part pattern:</p>
+<ul class="checklist">
+<li>The permission service is taking three seconds.</li>
+<li>A Kafka consumer applied every popularity event twice.</li>
+<li>One board has 500,000 cards and 20,000 concurrent viewers.</li>
+<li>A WebSocket reconnect misses ten minutes of changes.</li>
+<li>The database commits a card move but the API response is lost.</li>
+<li>A tag rename is visible in PostgreSQL but not search.</li>
+<li>A page is made private while present in a cached popular feed.</li>
+<li>A deployment changes the event payload while old clients remain connected.</li>
+</ul>
+
+<div class="page-actions"><span>Practise by answering before expanding each section.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="popular-feed.html"><small>Previous</small><strong>Popular feed</strong></a><a class="next" href="concepts.html"><small>Next</small><strong>Concept reference →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

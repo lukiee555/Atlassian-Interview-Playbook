@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive Atlassian values interview question deck, timers, interruption bank and scorecard."><title>Values Mock Interview &middot; Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="values-mock" data-title="Values Mock Interview"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Values</a><span aria-hidden="true">/</span><span>Mock Interview</span></nav>
+<header class="page-header"><div class="page-kicker">Simulation - 45 minutes</div><h1>Values mock interview</h1><p class="lead">Practise one question per value, under time pressure and with follow-ups that force behavior rather than prepared slogans.</p><div class="page-meta"><span class="badge high">15-question deck</span><span class="meta-pill">90 sec + 3 min timers</span><span class="meta-pill">6-part scorecard</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<h2>Run a 45-minute values interview</h2>
+<div class="practice-deck" data-question-deck>
+<div class="deck-controls"><button class="primary-button" type="button" data-draw-question>Draw a values question</button><button class="action-button" type="button" data-timer-seconds="90">Start 90-second timer</button><button class="action-button" type="button" data-timer-seconds="180">Start 3-minute timer</button><span class="timer-display" data-timer-display>1:30</span></div>
+<div class="drawn-question" data-drawn-question>Press “Draw” and answer aloud before opening any notes.</div>
+<div class="question-pool" hidden>
+<span data-question-item data-value="Open company">Tell me about a difficult conversation. What exactly did you say?</span>
+<span data-question-item data-value="Open company">Tell me about feedback that was hard to hear and what changed afterward.</span>
+<span data-question-item data-value="Open company">When did you communicate bad news or a technical risk early?</span>
+<span data-question-item data-value="Heart + balance">Tell me about balancing delivery speed with quality or safety.</span>
+<span data-question-item data-value="Heart + balance">Describe a time you or the team missed the mark. How did you fix it?</span>
+<span data-question-item data-value="Heart + balance">When did you deliberately reduce scope or make a reversible decision?</span>
+<span data-question-item data-value="Customer">Tell me about a time you protected the customer when it was inconvenient.</span>
+<span data-question-item data-value="Customer">How did customer evidence change your technical plan?</span>
+<span data-question-item data-value="Customer">What customer-facing invariant would you refuse to compromise?</span>
+<span data-question-item data-value="Team">Tell me about helping someone who was not succeeding.</span>
+<span data-question-item data-value="Team">When did you put the team's goals above personal ambition?</span>
+<span data-question-item data-value="Team">Describe a cross-team collaboration where you changed your own approach.</span>
+<span data-question-item data-value="Change">Tell me about an improvement you initiated without being asked.</span>
+<span data-question-item data-value="Change">When did you advocate for a change that faced resistance?</span>
+<span data-question-item data-value="Change">What change you drove continued after the project ended?</span>
+</div>
+</div>
+
+<h2>Five-question mock agenda</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">0-3</div><h3>Opening</h3><p>Brief introduction. Do not spend the round retelling your resume.</p></div>
+<div class="timeline-item"><div class="timeline-time">3-10</div><h3>Open company</h3><p>Use the production disagreement or feedback story; probe exact words and accountability.</p></div>
+<div class="timeline-item"><div class="timeline-time">10-17</div><h3>Build with heart and balance</h3><p>Use pricing fallback/aggregation or staged migration; probe the rejected shortcut.</p></div>
+<div class="timeline-item"><div class="timeline-time">17-24</div><h3>Customer</h3><p>Use pricing correctness, Promo UI or Wally streaming; probe the user-visible consequence.</p></div>
+<div class="timeline-item"><div class="timeline-time">24-31</div><h3>Team</h3><p>Use cross-team triage or mentoring; probe what you gave up and how dependency was reduced.</p></div>
+<div class="timeline-item"><div class="timeline-time">31-38</div><h3>Change</h3><p>Use Spark consolidation or Promo UI; probe adoption, evidence and durability.</p></div>
+<div class="timeline-item"><div class="timeline-time">38-45</div><h3>Reflection and your questions</h3><p>One failure/learning question, then ask about how values appear in engineering decisions.</p></div>
+</div>
+
+<h2>Follow-up interruption bank</h2>
+<div class="details-stack" data-details-actions>
+<div class="details-actions"><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div>
+<details><summary>That sounds technical. What did you personally do with people?</summary><div class="details-content"><p>Name the risk you surfaced, the question you asked, how you adapted the message, who you aligned and how you followed through.</p></div></details>
+<details><summary>Why was the other person's view reasonable?</summary><div class="details-content"><p>State their constraint accurately before defending your choice. This demonstrates empathy and judgment rather than victory.</p></div></details>
+<details><summary>What did you sacrifice?</summary><div class="details-content"><p>Use a real cost: scope, time, preferred architecture, individual progress, short-term simplicity or visibility. Do not claim sacrifice when no trade-off existed.</p></div></details>
+<details><summary>How did you know the customer needed that?</summary><div class="details-content"><p>Point to support evidence, product input, observed behavior, data reconciliation or a customer-visible correctness invariant. Do not imply direct research you did not perform.</p></div></details>
+<details><summary>What was your mistake?</summary><div class="details-content"><p>Own one specific assumption or behavior. Avoid converting the answer into another success story.</p></div></details>
+<details><summary>What would this person say about you now?</summary><div class="details-content"><p>Address both the result and the relationship. Intent alone is not evidence that communication was effective.</p></div></details>
+<details><summary>What changed permanently?</summary><div class="details-content"><p>Name a durable behavior, contract, test, dashboard, process, ownership mechanism or independent capability.</p></div></details>
+</div>
+
+<h2>Score each answer from 1 to 5</h2>
+<div class="score-grid">
+<div class="score-card"><strong>Specificity</strong><p>One event, clear roles, actual choice.</p></div>
+<div class="score-card"><strong>Tension</strong><p>Two valid goals or perspectives competed.</p></div>
+<div class="score-card"><strong>Behavior</strong><p>Words, actions and adaptation are visible.</p></div>
+<div class="score-card"><strong>Evidence</strong><p>Result is verified, not aspirational.</p></div>
+<div class="score-card"><strong>Reflection</strong><p>Learning changed later behavior.</p></div>
+<div class="score-card"><strong>Control</strong><p>Core answer ends within 90 seconds.</p></div>
+</div>
+
+<h2>Questions to ask the values interviewer</h2>
+<ul class="checklist">
+<li>Which value creates the most useful tension in day-to-day engineering decisions?</li>
+<li>Can you share an example of a recent decision where two Atlassian values pulled in different directions?</li>
+<li>How do teams make “open company” work well across distributed or cross-functional groups?</li>
+<li>How are customer signals brought into platform or infrastructure engineering teams?</li>
+</ul>
+
+<h2>Closing reminder</h2>
+<div class="say-this">I do not need to sound perfect. I need to be specific, accountable and consistent: a real situation, a difficult choice, behavior another person could have observed, a result I can defend, and a lesson that changed how I work.</div>
+
+<div class="page-actions"><span>Practise aloud before reading the prepared answer.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="intake.html"><small>Previous</small><strong>Practice notes</strong></a><a class="next" href="../quick-revision/index.html"><small>Next</small><strong>Quick revision &rarr;</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

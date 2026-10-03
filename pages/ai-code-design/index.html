@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Atlassian AI-enabled code design round overview and execution framework.">
+<title>AI-Enabled Code Design · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script>
+</head><body data-root="../../" data-page="ai-overview" data-title="AI-Enabled Code Design Overview">
+<div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><span>AI-Enabled Code Design</span></nav>
+<header class="page-header"><div class="page-kicker">Round 1 · Repository engineering with AI</div><h1>AI-Enabled Code Design</h1>
+<p class="lead">The task is not “make AI produce code.” It is to understand an unfamiliar repository, define the requirement, direct the assistant, verify its work, and leave behind a small, defensible change.</p>
+<div class="page-meta"><span class="badge verified">Current HackerRank ADE format</span><span class="meta-pill">Plan → Build → Review</span><span class="meta-pill">Language-flexible</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout info"><span class="callout-title">What is officially supported by the platform</span>
+<p>HackerRank’s Agentic Development Environment provides repository navigation, an editor, terminal, browser preview, diff review, Plan mode and Agent mode. The interviewer can observe the AI interaction, and the complete assistant conversation can appear in the interview report. Treat every prompt and accepted edit as part of your evaluated work.</p></div>
+
+<h2>The mental model</h2>
+<div class="interview-flow">
+  <div class="flow-step" data-step="1"><strong>Clarify the ticket</strong><span>Turn one sentence into explicit acceptance criteria and identify ambiguous business rules.</span></div>
+  <div class="flow-step" data-step="2"><strong>Establish a baseline</strong><span>Read the README/build files, run the relevant test command and record pre-existing failures.</span></div>
+  <div class="flow-step" data-step="3"><strong>Map the execution path</strong><span>Request/route → DTO/schema → controller/handler → service/domain → repository → error response.</span></div>
+  <div class="flow-step" data-step="4"><strong>Plan before editing</strong><span>Name the files, behaviour, tests and risk. Use Plan mode as a reviewer, not an oracle.</span></div>
+  <div class="flow-step" data-step="5"><strong>Implement a narrow vertical slice</strong><span>Follow current conventions and avoid new abstractions or dependencies without evidence.</span></div>
+  <div class="flow-step" data-step="6"><strong>Verify and explain</strong><span>Run tests, inspect the diff, challenge the AI output and explain every changed line.</span></div>
+</div>
+
+<h2>What the interviewer is likely observing</h2>
+<div class="concept-grid">
+  <div class="concept-card"><h3>Requirement judgment</h3><p>Do you notice leading zeroes, existing data, error contracts, update flows, retries and security implications?</p><div class="interview-cue"><strong>Show it:</strong> restate the rule and ask only high-value clarifications.</div></div>
+  <div class="concept-card"><h3>Repository comprehension</h3><p>Can you find the real control flow and distinguish relevant files from generated or unrelated code?</p><div class="interview-cue"><strong>Show it:</strong> cite symbols and run the existing application/tests.</div></div>
+  <div class="concept-card"><h3>Architectural placement</h3><p>Can you separate request-shape validation, business invariants, security logic, orchestration and persistence?</p><div class="interview-cue"><strong>Show it:</strong> say why the rule belongs where you place it.</div></div>
+  <div class="concept-card"><h3>AI collaboration</h3><p>Can you scope prompts, spot incorrect assumptions, reject unnecessary edits and preserve ownership?</p><div class="interview-cue"><strong>Show it:</strong> narrate why you accept or reject each suggestion.</div></div>
+  <div class="concept-card"><h3>Testing discipline</h3><p>Can you prove the new behaviour and protect existing behaviour without building a huge suite?</p><div class="interview-cue"><strong>Show it:</strong> baseline, focused tests, negative cases, broader suite.</div></div>
+  <div class="concept-card"><h3>Diff quality</h3><p>Does the final change avoid formatting churn, hidden interface changes, debug logging and speculative refactoring?</p><div class="interview-cue"><strong>Show it:</strong> review the diff aloud before declaring success.</div></div>
+</div>
+
+<h2>A practical 60-minute structure</h2>
+<div class="timeline">
+  <div class="timeline-item"><div class="timeline-time">0–5 min</div><h3>Understand and clarify</h3><p>Restate the requirement, ask two to four material questions and define success.</p></div>
+  <div class="timeline-item"><div class="timeline-time">5–12 min</div><h3>Run the baseline</h3><p>Read README/build files, execute tests, inspect structure and note existing failures.</p></div>
+  <div class="timeline-item"><div class="timeline-time">12–18 min</div><h3>Trace and plan</h3><p>Locate the relevant flow, state the smallest change and identify the tests.</p></div>
+  <div class="timeline-item"><div class="timeline-time">18–38 min</div><h3>Implement</h3><p>Use bounded Agent prompts or edit directly. Review each file immediately.</p></div>
+  <div class="timeline-item"><div class="timeline-time">38–50 min</div><h3>Test and debug</h3><p>Run focused tests, add edge cases and investigate failures with evidence.</p></div>
+  <div class="timeline-item"><div class="timeline-time">50–60 min</div><h3>Review and summarize</h3><p>Inspect the diff, explain placement/trade-offs, state test evidence and remaining risk.</p></div>
+</div>
+
+<h2>What to say at the start</h2>
+<div class="say-this">I’ll first confirm the expected behaviour and any important edge cases. Then I’ll establish a baseline, trace the current request flow and identify the repository’s existing conventions. I’ll use the assistant to accelerate discovery and implementation, but I’ll review its assumptions and verify the result with tests and the final diff.</div>
+
+<h2>The two publicly reported task families</h2>
+<div class="card-grid two">
+  <article class="card"><div class="card-number">Candidate-reported · concrete prompt</div><h3>Credit-card PIN with four distinct digits</h3><p>A Java banking application must enforce an exact four-digit PIN with no repeated digit.</p><a class="card-link" href="pin-validation.html">Open complete simulation →</a></article>
+  <article class="card"><div class="card-number">Candidate-reported · bug category only</div><h3>Fix password functionality</h3><p>The public report does not disclose the exact bug. The playbook teaches the investigation and uses a clearly labelled BCrypt comparison scenario.</p><a class="card-link" href="password-bug.html">Open complete simulation →</a></article>
+</div>
+
+<h2>How to use AI without disappearing from the interview</h2>
+<div class="table-wrap"><table><thead><tr><th>Use AI for</th><th>You still own</th><th>Weak behaviour</th></tr></thead><tbody>
+<tr><td>Repository map, call graph, unfamiliar syntax</td><td>Requirement interpretation and evidence checks</td><td>Accepting a guessed file path or architecture</td></tr>
+<tr><td>Drafting a focused implementation</td><td>Scope, placement, API/error compatibility</td><td>“Fix everything and make tests pass”</td></tr>
+<tr><td>Generating targeted tests</td><td>Choosing meaningful cases and reading output</td><td>Believing “tests pass” without running them</td></tr>
+<tr><td>Reviewing the diff</td><td>Final judgment and explanation</td><td>Shipping code you cannot defend</td></tr>
+</tbody></table></div>
+
+<h2>Final review checklist</h2>
+<ul class="checklist">
+  <li>The implementation satisfies the exact acceptance criteria—not a broader guessed requirement.</li>
+  <li>The rule is placed in the repository’s existing architectural layer.</li>
+  <li>Existing API shapes, status codes and error messages remain compatible unless the task requires change.</li>
+  <li>Null, empty, malformed, duplicate and boundary inputs are considered.</li>
+  <li>Focused tests and the relevant broader suite were actually run.</li>
+  <li>No unrelated files, dependencies, formatting or generated artefacts changed.</li>
+  <li>You can explain what the AI suggested, what you changed and what you rejected.</li>
+</ul>
+
+<h2>References</h2>
+<div class="reference-list">
+  <div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official guidance on problem solving, learning agility, clean design, trade-offs and communication.</p></div>
+  <div class="reference-item"><a href="https://support.hackerrank.com/articles/6894631608-use-ade-in-interviews" target="_blank" rel="noreferrer">HackerRank: Use ADE in Interviews</a><p>Official explanation of Plan/Agent modes, repository tools, terminal, browser and diff panels.</p></div>
+  <div class="reference-item"><a href="https://support.hackerrank.com/articles/4698145256-ai-assistant-in-interviews" target="_blank" rel="noreferrer">HackerRank: AI Assistant in Interviews</a><p>Official visibility and report behaviour for AI-assisted interview sessions.</p></div>
+</div>
+
+<div class="page-actions"><span>Ready to practise the first task?</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="../../index.html"><small>Previous</small><strong>Home</strong></a><a class="next" href="pin-validation.html"><small>Next</small><strong>PIN simulation →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer>
+</body></html>

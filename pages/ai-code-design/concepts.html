@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interview-oriented repository engineering concepts for AI-enabled code design."><title>AI Code Design Concepts · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="ai-concepts" data-title="AI Code Design Concepts"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>Common Concepts</span></nav>
+<header class="page-header"><div class="page-kicker">Interview-oriented reference</div><h1>Concepts behind a safe repository change</h1><p class="lead">Use these ideas to explain why your code belongs where it does, why your tests are sufficient, and why an AI-generated edit should—or should not—be accepted.</p></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<h2>Repository mapping</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Entry point</h3><p>The route, controller, command handler, event listener or UI action where the behaviour begins.</p><div class="interview-cue"><strong>Say:</strong> “I’m locating the real entry point before assuming which class owns the behaviour.”</div></div>
+<div class="concept-card"><h3>Execution path</h3><p>The ordered call flow from input to side effect and response. It reveals validation boundaries and bypass routes.</p><div class="interview-cue"><strong>Say:</strong> “I want to know every path that can create or update this state.”</div></div>
+<div class="concept-card"><h3>Repository convention</h3><p>The closest existing feature is usually stronger evidence than a generic framework pattern.</p><div class="interview-cue"><strong>Say:</strong> “I’ll follow the current error and test style unless the task requires changing it.”</div></div>
+<div class="concept-card"><h3>Baseline</h3><p>The state of tests and application behaviour before your edit. Without it, you may claim an existing failure as your regression.</p><div class="interview-cue"><strong>Say:</strong> “This test already fails before my change; I’ll keep it separate from the task evidence.”</div></div>
+</div>
+
+<h2>Where logic belongs</h2>
+<div class="table-wrap"><table><thead><tr><th>Layer</th><th>Good responsibilities</th><th>What not to hide there</th></tr></thead><tbody>
+<tr><td>Frontend</td><td>Immediate feedback, input hints, local interaction state.</td><td>Authoritative business or security enforcement.</td></tr>
+<tr><td>DTO / schema</td><td>Shape, required fields, length, simple format.</td><td>Rules requiring domain state or cross-entity decisions.</td></tr>
+<tr><td>Controller / route</td><td>Transport mapping, orchestration, status/response conversion.</td><td>Reusable business rules or password hashing.</td></tr>
+<tr><td>Service / domain</td><td>Business invariants, workflows, authorization coordination.</td><td>HTTP-specific details where avoidable.</td></tr>
+<tr><td>Repository / database</td><td>Persistence, uniqueness and integrity constraints.</td><td>User-facing validation as the only line of defence.</td></tr>
+<tr><td>Security component</td><td>Hashing, comparison, token verification, cryptographic policy.</td><td>Ad hoc crypto implemented in controllers.</td></tr>
+</tbody></table></div>
+
+<h2>Validation boundaries</h2>
+<div class="interview-block ask"><div class="interview-label">Ask</div><div class="interview-body"><p>Can another client or code path bypass this layer? If yes, that layer cannot be the sole authority for the invariant.</p></div></div>
+<p><strong>Frontend validation</strong> improves usability. <strong>Backend validation</strong> protects the system from direct API calls, modified clients, stale clients and internal code paths. <strong>Database constraints</strong> protect integrity during races and programming mistakes where the rule can be expressed safely.</p>
+<div class="callout success"><span class="callout-title">A useful sentence</span><p>“I’ll mirror this rule in the UI for immediate feedback, but the backend remains authoritative. Where a persistence constraint can prevent a race, I’ll use that as a final integrity boundary rather than as the user experience.”</p></div>
+
+<h2>Smallest safe change</h2>
+<p>The smallest safe change is not always the fewest lines. It is the narrowest set of edits that makes the new behaviour correct across all relevant paths and proves it with tests.</p>
+<ul class="checklist">
+<li>Modify existing extension points before creating a parallel framework.</li>
+<li>Preserve API and data compatibility unless the requirement explicitly changes them.</li>
+<li>Avoid introducing a dependency for logic that can be expressed clearly with existing tools.</li>
+<li>Do not combine the requested feature with cleanup that can be reviewed separately.</li>
+<li>Prefer one authoritative rule reused by create/update/reset paths over copied conditions.</li>
+</ul>
+
+<h2>Testing layers</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Unit test</h3><p>Proves a small rule or service branch quickly. Best for PIN policy, password comparison and error mapping in isolation.</p><div class="interview-cue"><strong>Use when:</strong> the behaviour is deterministic and dependencies can be controlled.</div></div>
+<div class="concept-card"><h3>Integration test</h3><p>Proves wiring between HTTP, validation, service, security configuration and persistence.</p><div class="interview-cue"><strong>Use when:</strong> the bug could live at a framework boundary.</div></div>
+<div class="concept-card"><h3>End-to-end test</h3><p>Proves a critical user flow through the running application but is slower and more fragile.</p><div class="interview-cue"><strong>Use when:</strong> the repository already has this layer and the change crosses UI/API boundaries.</div></div>
+<div class="concept-card"><h3>Regression test</h3><p>Fails on the original bug and passes after the fix. It is the strongest compact evidence that the root cause is addressed.</p><div class="interview-cue"><strong>Say:</strong> “I’ll first write or identify the test that reproduces the reported failure.”</div></div>
+</div>
+
+<h2>AI review concepts</h2>
+<div class="details-stack">
+<details><summary>Hallucinated repository facts</summary><div class="details-content"><p>An assistant may describe a file or function that does not exist. Require paths and symbols, then open them yourself.</p></div></details>
+<details><summary>Scope drift</summary><div class="details-content"><p>The agent may refactor neighbouring code, add libraries or change public types. Inspect the diff after every bounded step.</p></div></details>
+<details><summary>Tests that pass for the wrong reason</summary><div class="details-content"><p>A mock can bypass the changed branch; an assertion may be too broad; the test command may not discover the new file. Read test output and coverage of behaviour, not merely the exit code.</p></div></details>
+<details><summary>Confident security mistakes</summary><div class="details-content"><p>Never accept custom password hashing, raw-secret logging, reversible encryption or client-only enforcement because the generated code looks polished.</p></div></details>
+<details><summary>Unexplainable code</summary><div class="details-content"><p>If you cannot explain an abstraction, library call or concurrency choice, pause and ask the assistant to explain it from this repository—or simplify it.</p></div></details>
+</div>
+
+<h2>Password-specific fundamentals</h2>
+<ul class="checklist">
+<li>Store a password hash, never the raw password.</li>
+<li>Use the configured password encoder’s <code>matches(raw, encoded)</code> API; do not encode again and compare strings.</li>
+<li>Do not log passwords, reset tokens or full authentication payloads.</li>
+<li>Use generic authentication failures where exposing account existence would be harmful.</li>
+<li>Keep policy validation separate from hashing/comparison responsibilities.</li>
+<li>Rate limiting, lockout and monitoring are defence-in-depth concerns, not substitutes for correct comparison.</li>
+</ul>
+
+<h2>How to explain AI usage</h2>
+<div class="say-this">I used Plan mode to map the request flow and identify existing conventions. I verified the cited files myself, then constrained Agent mode to the agreed classes. The agent initially suggested [specific thing], which I rejected because [repository evidence or risk]. I ran the tests directly, inspected the final diff and can explain each change.</div>
+
+<div class="page-actions"><span>Use concepts as explanations, not buzzwords.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="prompts.html"><small>Previous</small><strong>AI prompts</strong></a><a class="next" href="../system-design/index.html"><small>Next round</small><strong>Full-Stack System Design →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

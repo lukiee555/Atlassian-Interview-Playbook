@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Simple interview-oriented full-stack and distributed systems concept reference."><title>System Design Concepts · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="system-concepts" data-title="System Design Concepts"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Concepts</span></nav>
+<header class="page-header"><div class="page-kicker">Quick concept reference</div><h1>System-design concepts in interview language</h1><p class="lead">Each concept answers three questions: what it is, when it earns a place in the diagram, and what sentence demonstrates judgment rather than buzzword recall.</p></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<h2>Traffic and service architecture</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Load balancing</h3><p>Distributes requests or connections across healthy instances. It can be layer 4/7 and may need connection-aware routing for WebSockets.</p><div class="interview-cue"><strong>Say:</strong> “The service is stateless, so requests can go to any instance; connection state lives in a shared registry or is routed consistently only where needed.”</div></div>
+<div class="concept-card"><h3>Horizontal scaling</h3><p>Add more instances/partitions rather than only making one machine larger. It requires externalized state and partitionable workload.</p><div class="interview-cue"><strong>Use when:</strong> traffic or connections exceed one instance; name the remaining shared bottleneck.</div></div>
+<div class="concept-card"><h3>API Gateway / BFF</h3><p>A gateway handles cross-cutting routing/auth/rate limits; a BFF shapes data for a particular client experience.</p><div class="interview-cue"><strong>Trade-off:</strong> fewer client round trips versus another orchestration/bottleneck layer.</div></div>
+<div class="concept-card"><h3>Rate limiting</h3><p>Controls requests/events by actor, tenant, token or resource over a window.</p><div class="interview-cue"><strong>Say:</strong> “I’ll protect expensive endpoints and shared capacity with tenant-aware limits, return retry guidance and avoid one global key.”</div></div>
+<div class="concept-card"><h3>Backend service boundary</h3><p>A service owns a cohesive business capability and its invariants/data—not simply one table or one endpoint.</p><div class="interview-cue"><strong>Use when:</strong> independent scaling/ownership/failure boundaries justify separation; start simpler otherwise.</div></div>
+<div class="concept-card"><h3>CDN</h3><p>Serves cacheable static assets and sometimes public/edge-safe responses close to users.</p><div class="interview-cue"><strong>Do not use for:</strong> sensitive dynamic responses without correct cache keys and authorization behaviour.</div></div>
+</div>
+
+<h2>Data modelling and storage</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>SQL database</h3><p>Relational schema with transactions, constraints, joins and secondary indexes.</p><div class="interview-cue"><strong>Choose when:</strong> invariants/uniqueness/transactions and evolving queries matter.</div></div>
+<div class="concept-card"><h3>NoSQL</h3><p>Key-value, document or wide-column models optimized around specific access and partition patterns.</p><div class="interview-cue"><strong>Say:</strong> the exact partition and sort key, consistency model and unsupported query—not “it scales.”</div></div>
+<div class="concept-card"><h3>Database indexing</h3><p>An ordered/hashed structure that accelerates particular filters/sorts at the cost of storage and write work.</p><div class="interview-cue"><strong>Rule:</strong> derive composite index order from equality filters, range and sort; confirm with access patterns.</div></div>
+<div class="concept-card"><h3>Partitioning / sharding</h3><p>Splits data/work among nodes by a key. A poor key creates hotspots or cross-shard operations.</p><div class="interview-cue"><strong>Say:</strong> “Tenant/board keeps common transactions local; I need a resharding plan for very large tenants.”</div></div>
+<div class="concept-card"><h3>Replication</h3><p>Copies data for availability/read scale. Replicas may lag and failover may lose the latest asynchronous writes.</p><div class="interview-cue"><strong>Ask:</strong> which reads require read-after-write and must go to primary/consistent path?</div></div>
+<div class="concept-card"><h3>Keyset pagination</h3><p>Continues after the last stable sort key instead of skipping an offset.</p><div class="interview-cue"><strong>Use when:</strong> data is large/changing; encode sort key + tie-break ID in an opaque cursor.</div></div>
+</div>
+
+<h2>Caching and search</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Cache-aside</h3><p>Application checks cache, loads source on miss, then populates cache. Writes update/invalidate after commit.</p><div class="interview-cue"><strong>Always name:</strong> key, TTL, invalidation, source of truth and stale-data safety.</div></div>
+<div class="concept-card"><h3>Versioned cache key</h3><p>Includes a data/permission/model version so new writes naturally use a new key.</p><div class="interview-cue"><strong>Benefit:</strong> reduces race-prone deletes; old entries expire later.</div></div>
+<div class="concept-card"><h3>Search index</h3><p>A denormalized projection optimized for text, filtering and ranking—not the authoritative mutation store.</p><div class="interview-cue"><strong>Say:</strong> “Index updates are eventual; permissions/deletions need safe filtering and reconciliation.”</div></div>
+<div class="concept-card"><h3>Cache stampede</h3><p>Many requests miss the same key and all hit the source.</p><div class="interview-cue"><strong>Mitigate:</strong> request coalescing/lock, jittered TTL, stale-while-revalidate or prewarming.</div></div>
+<div class="concept-card"><h3>Materialized view</h3><p>Precomputed data shaped for a read, such as Top-K or activity feed.</p><div class="interview-cue"><strong>Trade-off:</strong> fast reads versus eventual update/rebuild complexity.</div></div>
+<div class="concept-card"><h3>Denormalization</h3><p>Copies selected fields into a read model to avoid joins/fan-out.</p><div class="interview-cue"><strong>Say:</strong> which source is authoritative and how change/delete events reconcile copies.</div></div>
+</div>
+
+<h2>Events, queues and asynchronous work</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Event-driven architecture</h3><p>A committed business fact is published so independent consumers update projections or trigger work.</p><div class="interview-cue"><strong>Use when:</strong> secondary work can lag and benefits from decoupled scale/replay.</div></div>
+<div class="concept-card"><h3>Message queue</h3><p>Buffers work; consumers typically compete to process each message.</p><div class="interview-cue"><strong>Use when:</strong> background jobs, retry and load smoothing are central.</div></div>
+<div class="concept-card"><h3>Pub/Sub</h3><p>Multiple subscribers receive a published event, often through separate subscriptions/consumer groups.</p><div class="interview-cue"><strong>Use when:</strong> search, audit, notifications and analytics need the same fact independently.</div></div>
+<div class="concept-card"><h3>Transactional outbox</h3><p>Domain change and event-to-publish are written in one local transaction.</p><div class="interview-cue"><strong>Solves:</strong> database/event dual-write gap; still produces at-least-once duplicates.</div></div>
+<div class="concept-card"><h3>Idempotency</h3><p>Repeating an operation with the same identity has no additional business effect.</p><div class="interview-cue"><strong>Apply at:</strong> API request, consumer effect and external side-effect boundary.</div></div>
+<div class="concept-card"><h3>Dead-letter queue</h3><p>Quarantines messages that cannot succeed after bounded retries.</p><div class="interview-cue"><strong>Needs:</strong> alert, inspection, correction and safe replay—not a silent graveyard.</div></div>
+</div>
+
+<h2>Consistency and concurrency</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Strong consistency</h3><p>Reads observe a single current order/state according to the system’s guarantee.</p><div class="interview-cue"><strong>Use for:</strong> core invariants, permissions, money-like state and atomic transitions.</div></div>
+<div class="concept-card"><h3>Eventual consistency</h3><p>Replicas/projections converge after a delay; users may see a stale intermediate view.</p><div class="interview-cue"><strong>Use for:</strong> search, analytics, notifications and ranking—state the bound and UX.</div></div>
+<div class="concept-card"><h3>Optimistic locking</h3><p>Update succeeds only if the version/ETag is still current.</p><div class="interview-cue"><strong>Use when:</strong> conflicts are uncommon and user think time makes locks impractical.</div></div>
+<div class="concept-card"><h3>Pessimistic locking</h3><p>Locks rows/resources before change to prevent competing writes.</p><div class="interview-cue"><strong>Use for:</strong> short high-contention critical sections; avoid across network/user interactions.</div></div>
+<div class="concept-card"><h3>At-least-once delivery</h3><p>A message is retried until acknowledged and may arrive multiple times.</p><div class="interview-cue"><strong>Design implication:</strong> idempotent consumers and deduplication.</div></div>
+<div class="concept-card"><h3>Saga / compensation</h3><p>Coordinates a multi-service workflow through local transactions and compensating actions.</p><div class="interview-cue"><strong>Use when:</strong> one ACID transaction cannot span services; compensation may not fully undo reality.</div></div>
+</div>
+
+<h2>Realtime communication</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Polling</h3><p>Client repeatedly requests current state.</p><div class="interview-cue"><strong>Good for:</strong> simple low-frequency freshness; cost grows with empty polls.</div></div>
+<div class="concept-card"><h3>Server-Sent Events (SSE)</h3><p>Long-lived HTTP server-to-client stream with event IDs and straightforward reconnection.</p><div class="interview-cue"><strong>Good for:</strong> feeds/status/domain updates that do not require bidirectional messages.</div></div>
+<div class="concept-card"><h3>WebSockets</h3><p>Persistent bidirectional connection.</p><div class="interview-cue"><strong>Good for:</strong> chat/presence/collaboration; discuss auth, routing, heartbeat, backpressure and recovery.</div></div>
+<div class="concept-card"><h3>Sequence/cursor recovery</h3><p>Client records last applied event and requests missing changes after reconnect.</p><div class="interview-cue"><strong>Fallback:</strong> if replay is unavailable/too large, send “resync required” and fetch snapshot.</div></div>
+</div>
+
+<h2>Frontend architecture</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Local UI state</h3><p>Ephemeral interaction state such as open dialog, input text, drag target and focus.</p><div class="interview-cue"><strong>Keep separate from:</strong> remote authoritative data.</div></div>
+<div class="concept-card"><h3>Server state</h3><p>Remote data with ownership, fetching, caching, freshness, retries and mutation lifecycle.</p><div class="interview-cue"><strong>Use a query/cache layer:</strong> stable keys include tenant, filter and cursor.</div></div>
+<div class="concept-card"><h3>Optimistic UI</h3><p>Apply a predicted result before the server confirms.</p><div class="interview-cue"><strong>Requires:</strong> operation ID, rollback snapshot, authoritative response and conflict policy.</div></div>
+<div class="concept-card"><h3>Offline queue</h3><p>Persists pending operations locally and retries on reconnect.</p><div class="interview-cue"><strong>Requires:</strong> client IDs, idempotency, order/dependency model and conflict resolution.</div></div>
+<div class="concept-card"><h3>Virtualization</h3><p>Renders only visible portions of a large list/board.</p><div class="interview-cue"><strong>Connect to backend:</strong> bounded pages, stable IDs and predictable heights/focus.</div></div>
+<div class="concept-card"><h3>Code splitting</h3><p>Loads application bundles/features on demand.</p><div class="interview-cue"><strong>Use when:</strong> initial JS is a measurable bottleneck; prefetch likely next routes.</div></div>
+</div>
+
+<h2>Security and access</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Authentication</h3><p>Establishes who the caller is.</p><div class="interview-cue"><strong>Examples:</strong> session cookie, OAuth/OIDC token; validate issuer/audience/expiry.</div></div>
+<div class="concept-card"><h3>Authorization</h3><p>Determines what the authenticated actor can do with a resource.</p><div class="interview-cue"><strong>Rule:</strong> enforce server-side on every authoritative path and sensitive result.</div></div>
+<div class="concept-card"><h3>RBAC</h3><p>Roles map to capabilities, often within tenant/project scope.</p><div class="interview-cue"><strong>Good for:</strong> understandable enterprise administration; may need resource exceptions.</div></div>
+<div class="concept-card"><h3>ABAC / policy</h3><p>Decisions use attributes of actor, resource, action and context.</p><div class="interview-cue"><strong>Trade-off:</strong> expressive but harder to cache, explain and audit.</div></div>
+<div class="concept-card"><h3>CSRF</h3><p>Tricks a browser into sending an authenticated state-changing request, especially with cookies.</p><div class="interview-cue"><strong>Mitigate:</strong> same-site cookies, CSRF tokens and origin checks as appropriate.</div></div>
+<div class="concept-card"><h3>XSS</h3><p>Untrusted content executes script in the browser.</p><div class="interview-cue"><strong>Mitigate:</strong> output encoding, safe rendering/sanitization, CSP and avoiding unsafe HTML.</div></div>
+</div>
+
+<h2>Reliability and operations</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Timeouts</h3><p>Bound how long a dependency can consume request resources.</p><div class="interview-cue"><strong>Set from:</strong> end-to-end latency budget; distinguish connect/read/deadline.</div></div>
+<div class="concept-card"><h3>Retry with backoff + jitter</h3><p>Retries transient failures while spacing clients to avoid synchronized storms.</p><div class="interview-cue"><strong>Only retry:</strong> safe/idempotent operations and respect total deadline.</div></div>
+<div class="concept-card"><h3>Circuit breaker</h3><p>Stops repeated calls to a failing dependency and probes recovery.</p><div class="interview-cue"><strong>Benefit:</strong> prevents cascade; needs meaningful fallback/degradation.</div></div>
+<div class="concept-card"><h3>Observability</h3><p>Metrics, logs and traces reveal health and explain customer impact.</p><div class="interview-cue"><strong>Add:</strong> domain metrics and operation/event IDs, not only CPU and generic errors.</div></div>
+<div class="concept-card"><h3>SLO</h3><p>A target for customer-observed reliability/latency with an error budget.</p><div class="interview-cue"><strong>Use to decide:</strong> alerting, rollout speed and reliability investment.</div></div>
+<div class="concept-card"><h3>Canary / feature flag</h3><p>Exposes a change to a controlled subset and supports rapid disable/rollback.</p><div class="interview-cue"><strong>Pair with:</strong> compatible schema/contracts and measured success/error criteria.</div></div>
+</div>
+
+<h2>Concept selection test</h2>
+<p>Before adding any component, answer:</p>
+<ul class="checklist">
+<li>Which stated requirement creates the need?</li>
+<li>Which exact path or bottleneck does it improve?</li>
+<li>What new failure mode or operational cost does it introduce?</li>
+<li>What is the source of truth?</li>
+<li>What happens when this component is unavailable?</li>
+<li>How will I measure that it is working?</li>
+</ul>
+
+<div class="page-actions"><span>Use this page to fill gaps exposed by mocks—not as a syllabus to memorize.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="follow-ups.html"><small>Previous</small><strong>Follow-up bank</strong></a><a class="next" href="candidate-reported.html"><small>Next</small><strong>Candidate-reported topics →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

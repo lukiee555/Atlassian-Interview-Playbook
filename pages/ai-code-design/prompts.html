@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AI prompts for repository discovery, planning, implementation, testing and review during the Atlassian AI-enabled coding round.">
+<title>AI Prompts · Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="ai-prompts" data-title="AI Prompts"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>AI Prompts</span></nav>
+<header class="page-header"><div class="page-kicker">Copyable prompt library</div><h1>AI prompts that preserve your ownership</h1><p class="lead">Use the assistant as a repository explorer, implementation partner and skeptical reviewer. Keep each request bounded, evidence-based and easy to verify.</p></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout warning"><span class="callout-title">Do not paste the entire sequence automatically</span><p>Choose the next prompt based on what you have learned. Explain aloud why you are asking it and inspect the cited files, command output or diff yourself.</p></div>
+
+<h2>1. Understand the problem</h2>
+<div class="prompt-card"><h4>Convert the ticket into acceptance criteria</h4><div class="prompt-text">Do not inspect or edit code yet. Rewrite the task as explicit acceptance criteria. Separate confirmed requirements, ambiguous points, reasonable assumptions and questions I should ask the interviewer. Identify security or backward-compatibility implications without inventing hidden requirements.</div></div>
+<div class="prompt-card"><h4>Explain an unfamiliar stack briefly</h4><div class="prompt-text">I am comfortable with software design but less familiar with this language/framework. Explain only the repository conventions I need for this task: entry point, routing, validation, service/domain logic, persistence, error handling and tests. Use examples from this repository, cite the files and avoid a general tutorial.</div></div>
+
+<h2>2. Map the repository without editing</h2>
+<div class="prompt-card"><h4>Trace the execution path</h4><div class="prompt-text">Do not modify any files. Trace the current execution path for &lt;feature or bug&gt; from request/UI entry point through validation, controller/handler, service/domain logic, persistence and error response. Return an ordered call flow with file paths and symbols. Mark anything you inferred rather than directly verified.</div></div>
+<div class="prompt-card"><h4>Find conventions and relevant tests</h4><div class="prompt-text">Do not edit. Find the closest existing feature with similar validation or error handling. Show which project conventions it establishes, which tests cover it and the exact commands used to run those tests. Recommend reuse only where the repository evidence supports it.</div></div>
+<div class="prompt-card"><h4>Establish the baseline</h4><div class="prompt-text">Inspect the README and build files. Tell me the minimum install, run and test commands for this repository. Then run only the relevant existing tests. Report command output faithfully and distinguish pre-existing failures from failures related to this task. Do not fix anything yet.</div></div>
+
+<h2>3. Plan the change</h2>
+<div class="prompt-card"><h4>Smallest safe implementation plan</h4><div class="prompt-text">Do not implement yet. Propose the smallest change consistent with the existing architecture. Include: acceptance criteria; files and symbols to modify; files that should not need modification; validation/error behaviour; edge cases; tests; security concerns; assumptions; and rollback risk. Avoid new dependencies, broad refactoring and new abstractions unless you can justify them from repository evidence.</div></div>
+<div class="prompt-card"><h4>Challenge the planned placement</h4><div class="prompt-text">Review the proposed placement of this logic. Compare request-boundary validation, domain/service validation and persistence constraints. Explain which layer should be authoritative in this repository and why. Identify duplication or bypass risks. Do not edit code.</div></div>
+
+<h2>4. Implement a focused slice</h2>
+<div class="prompt-card"><h4>Bounded Agent-mode implementation</h4><div class="prompt-text">Implement only the agreed change in &lt;files/symbols&gt;. Follow current naming, dependency injection, validation, error and testing conventions. Preserve public interfaces and response formats. Do not modify unrelated files, add dependencies, reformat whole files or create speculative abstractions. After editing, stop and show the diff before running broader changes.</div></div>
+<div class="prompt-card"><h4>One file at a time</h4><div class="prompt-text">Modify only &lt;file&gt; to implement &lt;specific responsibility&gt;. Do not change tests or any other file yet. Explain each changed block and the invariant it enforces. Stop after displaying the diff for this file.</div></div>
+
+<h2>5. Diagnose a bug</h2>
+<div class="prompt-card"><h4>Root cause before patch</h4><div class="prompt-text">Do not edit immediately. Reproduce or trace the failure and identify the root cause using concrete runtime output, tests or code paths. Give me: observed behaviour, expected behaviour, first divergence in the flow, evidence, and the minimum safe fix. Distinguish root cause from symptoms and list alternative hypotheses you ruled out.</div></div>
+<div class="prompt-card"><h4>Investigate a failing test</h4><div class="prompt-text">Read the complete failing test output. Explain what failed, where the expected and actual behaviour diverged, and whether the failure is caused by the new change, an incorrect test assumption or an existing repository issue. Do not weaken assertions merely to make the test pass.</div></div>
+
+<h2>6. Generate and review tests</h2>
+<div class="prompt-card"><h4>Targeted test matrix</h4><div class="prompt-text">Create a compact test matrix for the acceptance criteria. Include happy path, null/empty input, boundaries, malformed input, duplicates, error contract, update path and regression cases only where relevant. Identify whether each case belongs in a unit, integration or end-to-end test and why.</div></div>
+<div class="prompt-card"><h4>Add focused tests</h4><div class="prompt-text">Add the smallest set of tests that proves the new behaviour and protects the existing contract. Follow the current test style and fixtures. Do not create a new test framework or broad snapshot. Show how each test maps to an acceptance criterion.</div></div>
+<div class="prompt-card"><h4>Check tests that pass for the wrong reason</h4><div class="prompt-text">Review these tests skeptically. Look for false positives, missing assertions, mocks that bypass the changed logic, over-broad exception assertions, order dependence and cases that never reach the relevant branch. Do not modify code until I review your findings.</div></div>
+
+<h2>7. Review the diff</h2>
+<div class="prompt-card"><h4>Senior reviewer pass</h4><div class="prompt-text">Act as a skeptical senior reviewer. Inspect only the current diff for correctness, architectural placement, security, error handling, backward compatibility, race conditions, test adequacy and unnecessary changes. For every concern, cite the file and line/symbol and describe a concrete failure scenario. Do not edit.</div></div>
+<div class="prompt-card"><h4>Scope-control pass</h4><div class="prompt-text">List every changed file and classify it as required, justified supporting change or unrelated. Flag dependency changes, generated files, formatting churn, debugging statements and public-interface changes. Recommend the smallest diff that still satisfies the task.</div></div>
+
+<h2>8. Prepare your explanation</h2>
+<div class="prompt-card"><h4>Changed-file walkthrough</h4><div class="prompt-text">Summarize the final solution in execution order. For each changed file explain: what changed, why the responsibility belongs there, which requirement it satisfies, which test verifies it, and any remaining risk. Identify any code I may have difficulty defending.</div></div>
+<div class="prompt-card"><h4>Interviewer follow-up simulator</h4><div class="prompt-text">Act as the interviewer. Ask one follow-up at a time about architecture, edge cases, tests, security, backward compatibility and AI usage. Wait for my answer. Then challenge one assumption or trade-off before moving to a harder follow-up. Do not reveal the ideal answer until I commit.</div></div>
+<div class="prompt-card"><h4>Two-minute closing summary</h4><div class="prompt-text">Help me compress this work into a two-minute verbal summary covering: requirement; root cause or prior behaviour; files changed; architectural reasoning; tests actually run; what the AI helped with; what I verified or rejected; and remaining risk. Use only facts supported by the repository and command output.</div></div>
+
+<h2>Prompt anti-patterns</h2>
+<div class="table-wrap"><table><thead><tr><th>Avoid</th><th>Why it is weak</th><th>Replace with</th></tr></thead><tbody>
+<tr><td>“Fix this entire app.”</td><td>No scope, no visible judgment, likely large diff.</td><td>Trace first; implement one agreed responsibility.</td></tr>
+<tr><td>“Make all tests pass.”</td><td>May weaken tests or hide pre-existing failures.</td><td>Explain the exact failure and minimum correct fix.</td></tr>
+<tr><td>“What should I do?”</td><td>Delegates the engineering decision.</td><td>Present your plan and ask the AI to challenge it.</td></tr>
+<tr><td>“Refactor for best practices.”</td><td>Repository context and interview scope are ignored.</td><td>Follow current conventions and avoid unrelated changes.</td></tr>
+<tr><td>“Is everything correct?”</td><td>Invites generic reassurance.</td><td>Ask for concrete failure scenarios with file evidence.</td></tr>
+</tbody></table></div>
+
+<div class="page-actions"><span>Practise these in sequence, but choose deliberately.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="password-bug.html"><small>Previous</small><strong>Password bug</strong></a><a class="next" href="concepts.html"><small>Next</small><strong>Common concepts →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

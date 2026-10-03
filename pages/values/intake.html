@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Loss-safe interview practice notes with local autosave and export."><title>Practice Note Builder &middot; Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="values-intake" data-title="Practice Note Builder"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Values</a><span aria-hidden="true">/</span><span>Practice Notes</span></nav>
+<header class="page-header"><div class="page-kicker">Optional · Loss-safe answer builder</div><h1>Practice-note builder</h1><p class="lead">The core stories are already prepared elsewhere. Use this page only to add exact wording, metrics, observed results and rehearsal notes. Download a backup rather than relying only on browser storage.</p><div class="page-meta"><span class="badge high">Autosave check</span><span class="meta-pill">TXT + JSON export</span><span class="badge simulation">Import supported</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout warning" data-storage-warning hidden><span class="callout-title">Persistent storage unavailable</span><p>This browser context cannot save notes reliably. Use <strong>Download TXT</strong> or <strong>Export JSON</strong> before leaving the page.</p></div>
+<div class="intake-actions"><button class="primary-button" type="button" data-copy-intake>Copy all</button><button class="secondary-button" type="button" data-download-intake>Download TXT</button><button class="secondary-button" type="button" data-export-intake-json>Export JSON</button><button class="secondary-button" type="button" data-import-intake>Import JSON</button><input type="file" accept="application/json,.json" data-import-intake-file hidden><button class="secondary-button" type="button" data-clear-intake>Clear</button><span data-intake-status></span></div>
+
+<div class="callout info"><span class="callout-title">You do not need to complete every field</span><p>Add only facts you can defend: an exact sentence, a verified result, a real metric or what you would do differently. The prepared answer library already contains the structure.</p></div>
+
+<section class="intake-section" data-intake-section><h2>1. Production disagreement</h2>
+<label class="intake-field"><span>What was the exact incident or business behavior?</span><textarea id="conflict-context" data-persist placeholder="One or two sentences"></textarea></label>
+<label class="intake-field"><span>What exact words did I use to challenge the proposal?</span><textarea id="conflict-words" data-persist placeholder="Reconstruct the clearest sentence"></textarea></label>
+<label class="intake-field"><span>What did business finally confirm?</span><textarea id="conflict-result" data-persist placeholder="Final behavior and result"></textarea></label></section>
+
+<section class="intake-section" data-intake-section><h2>2. International deployment failure</h2>
+<label class="intake-field"><span>Was this a failed deployment, degraded service or customer impact?</span><textarea id="failure-impact" data-persist></textarea></label>
+<label class="intake-field"><span>Recovery method and approximate time</span><textarea id="failure-recovery" data-persist></textarea></label>
+<label class="intake-field"><span>Permanent parity check or process change</span><textarea id="failure-guardrail" data-persist></textarea></label></section>
+
+<section class="intake-section" data-intake-section><h2>3. Mentoring result</h2>
+<label class="intake-field"><span>What behavior changed after the sprint?</span><textarea id="mentor-result" data-persist placeholder="Presented independently, raised blockers earlier, owned a feature, etc."></textarea></label>
+<label class="intake-field"><span>One specific coaching action that worked</span><textarea id="mentor-action" data-persist></textarea></label></section>
+
+<section class="intake-section" data-intake-section><h2>4. Project outcomes</h2>
+<label class="intake-field"><span>Pricing fallback/aggregation: production outcome I can safely state</span><textarea id="pricing-outcome" data-persist></textarea></label>
+<label class="intake-field"><span>Spark consolidation: runtime, cost, incidents or operational improvement</span><textarea id="spark-metrics" data-persist></textarea></label>
+<label class="intake-field"><span>Promo UI: users, frequency and manual dependency removed</span><textarea id="promo-metrics" data-persist></textarea></label>
+<label class="intake-field"><span>Wally: verified usage, feedback or reliability evidence</span><textarea id="wally-metrics" data-persist></textarea></label></section>
+
+<section class="intake-section" data-intake-section><h2>5. Rehearsal notes</h2>
+<label class="intake-field"><span>Answer that felt too long</span><textarea id="rehearsal-long" data-persist></textarea></label>
+<label class="intake-field"><span>Follow-up I struggled to answer</span><textarea id="rehearsal-followup" data-persist></textarea></label>
+<label class="intake-field"><span>One sentence I want to remember</span><textarea id="rehearsal-line" data-persist></textarea></label></section>
+
+<h2>Backup rule</h2>
+<div class="callout success"><span class="callout-title">Before closing this page</span><p>Use <strong>Download TXT</strong> for a readable backup and <strong>Export JSON</strong> if you want to import the fields later. The status beside the buttons tells you whether browser storage is persistent.</p></div>
+
+<div class="page-actions"><span>These notes are optional; your core story bank is already complete.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="story-bank.html"><small>Previous</small><strong>Story bank</strong></a><a class="next" href="mock.html"><small>Next</small><strong>Values mock →</strong></a></nav>
+
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Complete AI-enabled interview simulation for extending a Java banking application with a four-distinct-digit credit-card PIN rule.">
+<title>Four-Distinct-Digit PIN · Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="ai-pin" data-title="PIN: Four Distinct Digits"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>PIN Validation</span></nav>
+<header class="page-header"><div class="page-kicker">Question 1 · Complete interview simulation</div><h1>Credit-card PIN with exactly four distinct digits</h1>
+<p class="lead">Practise the whole repository-engineering loop: clarify the rule, find every mutation path, place one authoritative invariant, add narrow Java tests, inspect the diff, and explain how AI helped without outsourcing the judgment.</p>
+<div class="page-meta"><span class="badge verified">Candidate-reported task</span><span class="meta-pill">Java / Spring Boot</span><span class="meta-pill">Feature extension</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout success"><span class="callout-title">Evidence boundary</span><p>The publicly reported requirement is that a Java banking application be extended so a credit-card PIN contains four distinct digits. The repository structure, API path, response contract and code below are a realistic practice reconstruction—not a disclosed Atlassian repository or hidden test suite.</p></div>
+
+<h2>Interviewer question</h2>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>“Please extend this banking application so that a credit-card PIN contains exactly four distinct digits.”</blockquote></div></div>
+
+<h2>What should I think about first?</h2>
+<div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body">
+<ol>
+<li><strong>Translate the phrase precisely.</strong> “Exactly four distinct digits” implies length four, ASCII digits only unless told otherwise, and no repeated digit.</li>
+<li><strong>Do not model the PIN as an integer.</strong> A value such as <code>0123</code> may be valid and must retain its leading zero.</li>
+<li><strong>Find every write path.</strong> New card creation, PIN change and PIN reset may each mutate the value.</li>
+<li><strong>Find the existing authority.</strong> The repository may already have a validator, domain object, service or error-handling convention.</li>
+<li><strong>Do not change storage/security casually.</strong> This ticket adds a business rule; preserve the application’s established secure storage mechanism unless the requirement says otherwise.</li>
+</ol></div></div>
+
+<div class="say-this">I understand the invariant as a four-character PIN containing only digits 0–9, with every character unique. I’ll confirm leading-zero and scope behaviour, then trace all create/update paths so the rule has one backend authority rather than being enforced only in one controller.</div>
+
+<h2>Clarifying questions</h2>
+<div class="interview-block ask"><div class="interview-label">Ask</div><div class="interview-body"><p>Ask only questions that can change the implementation or tests. State a reasonable default when the interviewer does not care.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>Question to ask</th><th>Why it matters</th><th>Reasonable assumption if unspecified</th></tr></thead><tbody>
+<tr><td>Does the rule mean exactly four ASCII digits, all different?</td><td>Separates length, character set and uniqueness.</td><td>Yes: <code>[0-9]</code>, length 4, no repetition.</td></tr>
+<tr><td>Is a leading-zero PIN such as <code>0123</code> valid?</td><td>Determines String versus numeric modelling.</td><td>Yes; keep the PIN as a String.</td></tr>
+<tr><td>Which flows must enforce it: card creation, change and reset?</td><td>A controller-only check may leave bypasses.</td><td>All future mutations; existing stored values are not migrated unless requested.</td></tr>
+<tr><td>Should invalid input use the repository’s existing validation response?</td><td>Prevents accidental API-contract changes.</td><td>Reuse current exception/status/message shape.</td></tr>
+<tr><td>Is frontend validation part of the task?</td><td>Determines whether a UI file belongs in scope.</td><td>Backend is authoritative; mirror in UI only if the repository/task includes that client.</td></tr>
+<tr><td>Should current invalid PINs be rejected on read or migrated?</td><td>Could turn a small feature into a data migration.</td><td>No retroactive migration; enforce on create/update.</td></tr>
+</tbody></table></div>
+
+<h2>What the interviewer is looking for</h2>
+<ul class="checklist">
+<li>You convert a short requirement into explicit acceptance criteria before asking AI to edit.</li>
+<li>You inspect repository conventions and all mutation paths instead of guessing a file.</li>
+<li>You preserve leading zeroes and reject non-ASCII characters deliberately.</li>
+<li>You place the invariant in a reusable backend/domain location and optionally mirror it in the UI.</li>
+<li>You add focused positive and negative tests, run them, and inspect the final diff.</li>
+<li>You can explain why an AI-proposed abstraction is necessary—or why it is unnecessary.</li>
+</ul>
+
+<h2>Repository discovery before implementation</h2>
+<div class="prompt-card"><h4>Plan-mode prompt</h4><div class="prompt-text">Do not edit. Trace every code path that creates, changes or resets a credit-card PIN. Identify the request DTOs, controllers, services/domain methods, persistence code, existing validation/error conventions and relevant tests. Run the focused existing tests and report any baseline failures. Cite exact files and symbols. Then propose the smallest location for one authoritative four-distinct-digit rule.</div></div>
+
+<p>Verify the answer manually. A plausible Spring Boot flow might look like this, but the real repository is the source of truth:</p>
+<div class="diagram-shell"><div class="diagram-title">Illustrative request flow</div><pre class="mermaid">
+flowchart LR
+  UI[Card settings form] -->|PATCH /cards/:id/pin| C[CardController]
+  C --> D[ChangePinRequest]
+  C --> S[CardService]
+  S --> P[CreditCardPinPolicy]
+  S --> A[Authorization check]
+  S --> R[(CardRepository)]
+  C --> E[Existing error mapper]
+</pre><div class="diagram-note">The policy is reusable by create/change/reset flows. The controller remains transport-focused.</div></div>
+
+<h3>Files I would expect—but never assume</h3>
+<div class="table-wrap"><table><thead><tr><th>Repository evidence</th><th>What to inspect</th><th>Decision it informs</th></tr></thead><tbody>
+<tr><td><code>pom.xml</code> or <code>build.gradle</code></td><td>Java/Spring versions and test commands.</td><td>Language features and exact runner.</td></tr>
+<tr><td>Closest existing validator/policy</td><td>Naming, exception style and dependency injection.</td><td>Reuse versus new class.</td></tr>
+<tr><td>Card create/change/reset services</td><td>All mutation paths.</td><td>Authoritative placement.</td></tr>
+<tr><td><code>@ControllerAdvice</code> or equivalent</td><td>Error status and payload format.</td><td>Compatibility.</td></tr>
+<tr><td>Existing unit/integration tests</td><td>Fixtures and assertion style.</td><td>Smallest meaningful test set.</td></tr>
+</tbody></table></div>
+
+<h2>Acceptance criteria</h2>
+<div class="interview-block approach"><div class="interview-label">Approach</div><div class="interview-body">
+<ul>
+<li>A PIN is valid only when it is non-null, length four, contains characters <code>0</code> through <code>9</code>, and each digit appears once.</li>
+<li>Leading zeroes are preserved.</li>
+<li>Every in-scope PIN mutation invokes one authoritative policy.</li>
+<li>An invalid PIN produces the existing validation error contract and does not persist a change.</li>
+<li>Existing valid behaviour remains unchanged.</li>
+</ul></div></div>
+
+<h2>Implementation approach</h2>
+<p>The clearest implementation is a small stateless policy. A <code>boolean[10]</code> makes the ASCII and uniqueness rules explicit. Because the input length is fixed at four, runtime and extra space are effectively constant; described generally, the loop is <code>O(n)</code> time and <code>O(1)</code> space.</p>
+
+<h3>1. Authoritative PIN policy</h3>
+<pre><code class="language-java">package com.example.banking.cards;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public final class CreditCardPinPolicy {
+
+    public void validate(String pin) {
+        if (pin == null) {
+            throw new InvalidPinException("PIN is required");
+        }
+
+        if (pin.length() != 4) {
+            throw new InvalidPinException(
+                    "PIN must contain exactly four digits");
+        }
+
+        boolean[] seen = new boolean[10];
+
+        for (int index = 0; index &lt; pin.length(); index++) {
+            char current = pin.charAt(index);
+
+            // Explicit ASCII check keeps the contract unambiguous.
+            if (current &lt; '0' || current &gt; '9') {
+                throw new InvalidPinException(
+                        "PIN must contain digits only");
+            }
+
+            int digit = current - '0';
+            if (seen[digit]) {
+                throw new InvalidPinException(
+                        "PIN digits must be distinct");
+            }
+
+            seen[digit] = true;
+        }
+    }
+}</code></pre>
+
+<div class="callout info"><span class="callout-title">Why not convert to an integer?</span><p><code>Integer.parseInt("0123")</code> becomes <code>123</code>, losing information. The PIN is an identifier-like secret, not a quantity; String is the appropriate boundary model.</p></div>
+
+<h3>2. Existing domain exception</h3>
+<p>Prefer the repository’s current validation exception. This class is shown only to make the sample compile conceptually.</p>
+<pre><code class="language-java">package com.example.banking.cards;
+
+public final class InvalidPinException extends RuntimeException {
+    public InvalidPinException(String message) {
+        super(message);
+    }
+}</code></pre>
+
+<h3>3. Service integration</h3>
+<pre><code class="language-java">package com.example.banking.cards;
+
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class CardService {
+    private final CardRepository cardRepository;
+    private final CreditCardPinPolicy pinPolicy;
+
+    public CardService(
+            CardRepository cardRepository,
+            CreditCardPinPolicy pinPolicy) {
+        this.cardRepository = cardRepository;
+        this.pinPolicy = pinPolicy;
+    }
+
+    @Transactional
+    public void changePin(UUID cardId, String requestedPin, UserId actor) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -&gt; new CardNotFoundException(cardId));
+
+        card.requirePinChangePermission(actor);
+        pinPolicy.validate(requestedPin);
+
+        // Preserve the repository's existing secure PIN-storage path.
+        card.changePin(requestedPin);
+        cardRepository.save(card);
+    }
+}</code></pre>
+
+<p>The order of authorization and validation can depend on the repository’s security/error policy. Do not leak information about a card the actor cannot access. Follow the existing convention and explain it.</p>
+
+<h3>4. Optional request-boundary feedback</h3>
+<p>If the project already uses Bean Validation, DTO checks can reject obvious shape errors early, while the domain policy remains authoritative for every mutation path.</p>
+<pre><code class="language-java">public record ChangePinRequest(
+        @jakarta.validation.constraints.NotNull
+        @jakarta.validation.constraints.Pattern(
+                regexp = "[0-9]{4}",
+                message = "PIN must contain exactly four digits")
+        String pin) {
+}</code></pre>
+<div class="callout warning"><span class="callout-title">Do not duplicate the uniqueness rule casually</span><p>A custom annotation is unnecessary unless the repository already uses that pattern or multiple boundaries need it. Keep the authoritative uniqueness policy in one reusable component.</p></div>
+
+<h2>Tests</h2>
+<h3>Unit-test the invariant</h3>
+<pre><code class="language-java">package com.example.banking.cards;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class CreditCardPinPolicyTest {
+    private CreditCardPinPolicy policy;
+
+    @BeforeEach
+    void setUp() {
+        policy = new CreditCardPinPolicy();
+    }
+
+    @Test
+    void acceptsFourDistinctDigits() {
+        assertDoesNotThrow(() -&gt; policy.validate("1234"));
+    }
+
+    @Test
+    void preservesAndAcceptsLeadingZero() {
+        assertDoesNotThrow(() -&gt; policy.validate("0123"));
+    }
+
+    @Test
+    void rejectsRepeatedDigits() {
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate("1213"));
+    }
+
+    @Test
+    void rejectsNull() {
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate(null));
+    }
+
+    @Test
+    void rejectsIncorrectLength() {
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate("123"));
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate("12345"));
+    }
+
+    @Test
+    void rejectsNonAsciiDigitsAndOtherCharacters() {
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate("12a4"));
+        assertThrows(InvalidPinException.class,
+                () -&gt; policy.validate("12 4"));
+    }
+}</code></pre>
+
+<h3>Then prove the integration boundary</h3>
+<p>Add one focused service or controller test, following the repository’s existing style, to prove an invalid PIN is not persisted and the established error response remains unchanged. Do not create a large duplicate test suite for every layer.</p>
+<pre><code class="language-bash"># Examples only—use the repository's wrapper and exact class name.
+./mvnw -Dtest=CreditCardPinPolicyTest test
+./mvnw -Dtest=CardControllerTest test
+./mvnw test</code></pre>
+
+<h2>Edge-case matrix</h2>
+<div class="table-wrap"><table><thead><tr><th>Input</th><th>Expected</th><th>Reason</th></tr></thead><tbody>
+<tr><td><code>1234</code></td><td>Accept</td><td>Four distinct ASCII digits.</td></tr>
+<tr><td><code>0123</code></td><td>Accept</td><td>Leading zero is preserved by String modelling.</td></tr>
+<tr><td><code>1123</code></td><td>Reject</td><td>Repeated digit.</td></tr>
+<tr><td><code>1213</code></td><td>Reject</td><td>Non-adjacent repeat still violates uniqueness.</td></tr>
+<tr><td><code>0000</code></td><td>Reject</td><td>Only one distinct digit.</td></tr>
+<tr><td><code>123</code> / <code>12345</code></td><td>Reject</td><td>Length must be exactly four.</td></tr>
+<tr><td><code>12a4</code></td><td>Reject</td><td>Non-digit.</td></tr>
+<tr><td><code>12 4</code></td><td>Reject</td><td>Whitespace is not silently trimmed.</td></tr>
+<tr><td><code>null</code> / empty String</td><td>Reject</td><td>Missing or invalid length.</td></tr>
+<tr><td>Arabic-Indic or other Unicode numeral</td><td>Reject under stated contract</td><td>Explicit ASCII digits only.</td></tr>
+</tbody></table></div>
+
+<h2>Common mistakes</h2>
+<ul class="checklist warn">
+<li>Using an integer and accidentally losing leading zeroes.</li>
+<li>Checking only <code>pin.length() == 4</code> without uniqueness or digit validation.</li>
+<li>Checking adjacent duplicates only, so <code>1213</code> incorrectly passes.</li>
+<li>Adding validation only in the React form or one controller.</li>
+<li>Trimming or normalizing secret input without an explicit requirement.</li>
+<li>Adding a new validation framework or custom annotation for a four-line rule.</li>
+<li>Changing storage/security code despite the ticket being limited to validation.</li>
+<li>Asking AI for a broad refactor and accepting unrelated changes.</li>
+<li>Testing the policy but never proving invalid input cannot persist through the real path.</li>
+</ul>
+
+<h2>Interviewer follow-ups</h2>
+<section><div class="details-actions" data-details-actions><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div>
+<div class="details-stack">
+<details><summary>Why is the PIN a String rather than an integer?</summary><div class="details-content"><p>It is not a numeric quantity and may start with zero. A String preserves representation, lets us validate each character explicitly and avoids numeric parsing edge cases.</p></div></details>
+<details><summary>Why do you need backend and frontend validation?</summary><div class="details-content"><p>Frontend validation provides immediate feedback and avoids unnecessary requests. The backend is authoritative because clients can be modified, bypassed or outdated. I would mirror the rule in the UI only for user experience, while every backend mutation path invokes the domain policy.</p></div></details>
+<details><summary>Which file should contain this logic?</summary><div class="details-content"><p>I would first follow the repository’s closest validation convention. The reusable invariant belongs in an existing domain validator/policy or service—not only in a controller. DTO validation can handle shape, and the controller should map transport concerns.</p></div></details>
+<details><summary>Could you use a Set or stream?</summary><div class="details-content"><p>Yes. <code>pin.chars().distinct().count() == 4</code> is compact after digit/length validation. A boolean array is explicit, allocation-light and easy to explain. At fixed length four, performance is irrelevant; readability and repository style decide.</p></div></details>
+<details><summary>What if the PIN length becomes configurable?</summary><div class="details-content"><p>I would generalize only after that requirement exists: pass a policy configuration for length and allowed character set, validate that requested length cannot exceed ten when every digit must be distinct, and extend the tests. I would not add that abstraction pre-emptively.</p></div></details>
+<details><summary>What happens to existing invalid PINs?</summary><div class="details-content"><p>That is a product/data decision. My default is to enforce the invariant on future create/change/reset operations without blocking reads. If migration is required, I would avoid exposing or auto-transforming secrets and work with the existing secure reset process.</p></div></details>
+<details><summary>How do you ensure every update path uses the rule?</summary><div class="details-content"><p>I trace all public mutation paths and put validation in the shared service/domain method that owns the state transition. I add at least one test for each distinct bypass risk, and I search for direct setters or repository writes.</p></div></details>
+<details><summary>What if two PIN-change requests arrive concurrently?</summary><div class="details-content"><p>Uniqueness within a PIN is unaffected, but last-write behaviour matters. I would follow the existing concurrency model—often an entity version with optimistic locking. A stale update can return a conflict instead of silently overwriting a newer change.</p></div></details>
+<details><summary>Would you expose a detailed validation message?</summary><div class="details-content"><p>For a new PIN policy, actionable messages can improve UX, but I would preserve the repository’s security and API conventions. Authentication errors generally need less detail than input-policy errors.</p></div></details>
+<details><summary>How many possible PINs satisfy the rule?</summary><div class="details-content"><p>If leading zeroes are allowed, there are <code>10 × 9 × 8 × 7 = 5,040</code> ordered four-digit strings with no repeated digit. This is a product/security implication worth raising if the interviewer wants to discuss entropy, but it does not change the requested validation.</p></div></details>
+</div></section>
+
+<h2>What I would say after implementation</h2>
+<div class="say-this">I traced the create and PIN-change flows and placed one authoritative rule in the existing domain-policy layer. The PIN remains a String so leading zeroes are preserved. The validator explicitly checks null, exact length, ASCII digits and duplicates. I reused the current exception mapping and secure storage path, added focused policy tests plus an integration check that invalid input is not persisted, ran the relevant suite and reviewed the diff for unrelated changes. The AI helped map the repository and draft tests; I verified the cited paths and rejected broader refactoring.</div>
+
+<h2>Question-specific AI prompts</h2>
+<div class="prompt-card"><h4>Find every PIN mutation path</h4><div class="prompt-text">Do not edit. Find every path that creates, changes, resets or persists a credit-card PIN. Produce an ordered call graph with file paths and symbols. Identify any path that would bypass validation added only to the primary controller.</div></div>
+<div class="prompt-card"><h4>Challenge the edge cases</h4><div class="prompt-text">Review the requirement “exactly four distinct digits.” List all materially different edge-case classes, including representation, character set, duplicates and update behaviour. Do not invent product requirements; mark questions versus assumptions.</div></div>
+<div class="prompt-card"><h4>Review the final PIN diff</h4><div class="prompt-text">Inspect the current diff only. Check leading-zero preservation, ASCII digit handling, non-adjacent duplicates, null/empty input, validation bypasses, unchanged API/error contract, unchanged secure storage, test discovery and unrelated edits. Cite a concrete failure scenario for every concern.</div></div>
+
+<h2>References</h2>
+<div class="reference-list"><div class="reference-item"><a href="https://www.reddit.com/r/leetcode/comments/1vhhda4/atlassian_sde_internship_offer/" target="_blank" rel="noreferrer">Candidate report: four-distinct-digit PIN task</a><p>The public first-person report behind the disclosed task. Candidate reports are anecdotal and the repository or follow-ups may differ.</p></div><div class="reference-item"><a href="https://support.hackerrank.com/articles/6894631608-use-ade-in-interviews" target="_blank" rel="noreferrer">HackerRank ADE documentation</a><p>Platform mechanics for repository navigation, Plan/Agent modes, terminal, browser and diff review.</p></div><div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official evaluation philosophy: problem solving, learning agility, clean code, trade-offs and communication.</p></div></div>
+
+<div class="page-actions"><span>Next practice: diagnose the password flow before editing.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="index.html"><small>Previous</small><strong>Round overview</strong></a><a class="next" href="password-bug.html"><small>Next</small><strong>Password bug →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

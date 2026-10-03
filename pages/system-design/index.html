@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Atlassian full-stack system design interview framework and question map."><title>Full-Stack System Design · Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<body data-root="../../" data-page="system-overview" data-title="Full-Stack System Design Overview"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><span>Full-Stack System Design</span></nav>
+<header class="page-header"><div class="page-kicker">Round 2 · End-to-end architecture</div><h1>Full-Stack Based System Design</h1><p class="lead">Design a user experience and the system that makes it reliable: browser state, APIs, permissions, services, data, events, real-time behaviour, failures, scale and trade-offs.</p>
+<div class="page-meta"><span class="badge verified">60-minute official system-design format</span><span class="meta-pill">Frontend + backend</span><span class="meta-pill">Interactive discussion</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout info"><span class="callout-title">About the round title</span><p>Atlassian’s public guide describes a 60-minute system-design discussion, while candidate reports for full-stack roles also probe browser-to-database flows, authentication, frontend state and real-time behaviour. Because your recruiter called this “Full Stack Based System Design,” this playbook prepares for the combined signal. The exact balance can vary by interviewer.</p></div>
+
+<h2>The answer framework</h2>
+<div class="interview-flow">
+<div class="flow-step" data-step="1"><strong>User and scope</strong><span>Primary actor, top workflows, explicit out-of-scope items.</span></div>
+<div class="flow-step" data-step="2"><strong>Quality constraints</strong><span>Latency, availability, freshness, durability, multi-tenancy, permissions and cost.</span></div>
+<div class="flow-step" data-step="3"><strong>Core entities and access patterns</strong><span>What is stored; dominant reads and writes; ordering and consistency requirements.</span></div>
+<div class="flow-step" data-step="4"><strong>API and interaction contract</strong><span>Requests, responses, pagination, idempotency, versioning and real-time channel.</span></div>
+<div class="flow-step" data-step="5"><strong>Simple end-to-end design</strong><span>Browser → API → service → primary store. Prove the basic workflow first.</span></div>
+<div class="flow-step" data-step="6"><strong>Evolve for the hard requirement</strong><span>Add cache, search, events, queues or sockets only when a requirement creates the need.</span></div>
+<div class="flow-step" data-step="7"><strong>Failure, scale and security</strong><span>Retries, duplicates, concurrency, permission changes, hot tenants and observability.</span></div>
+<div class="flow-step" data-step="8"><strong>Trade-offs and summary</strong><span>State what is strongly consistent, eventually consistent, the first bottleneck and deliberate omissions.</span></div>
+</div>
+
+<h2>A 60-minute pacing guide</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">0–5 min</div><h3>Clarify the product</h3><p>Users, three workflows, scope, real-time/offline needs, tenancy and permissions.</p></div>
+<div class="timeline-item"><div class="timeline-time">5–10 min</div><h3>Requirements and scale</h3><p>Functional/non-functional requirements and only the estimates that change a decision.</p></div>
+<div class="timeline-item"><div class="timeline-time">10–16 min</div><h3>Entities and access patterns</h3><p>Data model sketch, dominant reads/writes and consistency boundaries.</p></div>
+<div class="timeline-item"><div class="timeline-time">16–23 min</div><h3>APIs and client contract</h3><p>Core endpoints/events, cursor pagination, idempotency and concurrency token.</p></div>
+<div class="timeline-item"><div class="timeline-time">23–36 min</div><h3>High-level architecture</h3><p>Simple synchronous path first; then derive async/search/realtime components.</p></div>
+<div class="timeline-item"><div class="timeline-time">36–48 min</div><h3>Full-stack deep dive</h3><p>Frontend state/UX plus database, indexing, cache, queue and consistency.</p></div>
+<div class="timeline-item"><div class="timeline-time">48–56 min</div><h3>Failures and scaling</h3><p>Database, cache, consumer, socket, permission and hot-partition scenarios.</p></div>
+<div class="timeline-item"><div class="timeline-time">56–60 min</div><h3>Close</h3><p>Key guarantees, trade-offs, first bottleneck, rollout and remaining risks.</p></div>
+</div>
+
+<h2>What to ask before drawing</h2>
+<div class="interview-block ask"><div class="interview-label">Ask</div><div class="interview-body"><ul>
+<li>Who is the primary user, and what are the top three workflows?</li>
+<li>Is this multi-tenant? Are tenants, projects or workspaces isolation boundaries?</li>
+<li>Which operations must be real time? Is offline support required?</li>
+<li>What permission model is in scope, and can access change frequently?</li>
+<li>What scale, peak traffic and freshness should I assume?</li>
+<li>Which data must be strongly consistent, and where is brief staleness acceptable?</li>
+<li>Do we support web only, or multiple clients and public integrations?</li>
+<li>What can I leave out so we can go deep on the core problem?</li>
+</ul></div></div>
+
+<div class="say-this">I’ll first confirm the core user journeys and quality constraints. Then I’ll define the entities, access patterns and client contract, draw the simplest end-to-end path, and progressively add the components required for permissions, scale, search or real-time behaviour. I’ll keep frontend and backend decisions connected and reserve time for failures and trade-offs.</div>
+
+<h2>Default full-stack skeleton</h2>
+<div class="diagram-shell"><div class="diagram-title">A starting canvas—not an answer to every question</div><pre class="mermaid">
+flowchart LR
+  U[User] --> W[Web / React client]
+  W -->|HTTPS REST or GraphQL| G[CDN / WAF / API gateway]
+  G --> B[BFF or domain API]
+  B --> A[Authentication + permission check]
+  A --> S[Domain service]
+  S --> DB[(Primary database)]
+  S --> C[(Cache)]
+  S --> O[(Transactional outbox)]
+  O --> Q[[Event stream / queue]]
+  Q --> I[Search / analytics / notification workers]
+  I --> IX[(Search index / projections)]
+  Q --> RT[Realtime gateway]
+  RT -->|SSE / WebSocket| W
+</pre><div class="diagram-note">Delete any box that cannot be justified by a requirement. The strongest design is not the one with the most components.</div></div>
+
+<h2>Full-stack coherence checks</h2>
+<div class="table-wrap"><table><thead><tr><th>Frontend statement</th><th>Backend obligation it creates</th></tr></thead><tbody>
+<tr><td>“The UI updates optimistically.”</td><td>Idempotency, operation ID, authoritative response, rollback/reconciliation and conflict policy.</td></tr>
+<tr><td>“Other users see updates instantly.”</td><td>Event publication, connection routing, authorization at subscription/delivery, reconnect/catch-up.</td></tr>
+<tr><td>“The page supports infinite scroll.”</td><td>Stable ordering and cursor pagination, not shifting offset pages.</td></tr>
+<tr><td>“The app works offline.”</td><td>Local durable queue, client-generated IDs, retry/deduplication and conflict resolution.</td></tr>
+<tr><td>“Search results are cached.”</td><td>Permission-aware keying, invalidation/revalidation and safe behaviour after access revocation.</td></tr>
+<tr><td>“Large lists render smoothly.”</td><td>Page/chunk API, virtualization-friendly stable IDs and bounded payloads.</td></tr>
+</tbody></table></div>
+
+<h2>Highest-priority playbooks</h2>
+<div class="card-grid">
+<article class="card"><div class="card-number">Priority 1 · Repeatedly reported</div><h3>Product-agnostic tagging</h3><p>Shared tags across Jira issues, Confluence pages and Bitbucket pull requests, with content lookup and popular tags.</p><a class="card-link" href="tagging-system.html">Open complete playbook →</a></article>
+<article class="card"><div class="card-number">Priority 2 · Full-stack reported</div><h3>Jira / Trello board</h3><p>Drag-and-drop ordering, optimistic updates, workflow rules, permissions and concurrent collaborators.</p><a class="card-link" href="jira-board.html">Open complete playbook →</a></article>
+<article class="card"><div class="card-number">Priority 3 · Recent reported prompt</div><h3>Confluence popular feed</h3><p>Ingest views/likes/shares, compute rolling Top-K, filter permissions and deliver stable real-time UI updates.</p><a class="card-link" href="popular-feed.html">Open complete playbook →</a></article>
+</div>
+
+<h2>The design canvas</h2>
+<div class="table-wrap"><table><thead><tr><th>Section</th><th>Questions to answer</th></tr></thead><tbody>
+<tr><td>Users and workflows</td><td>Who acts? What are the three most important journeys? What is out of scope?</td></tr>
+<tr><td>Quality constraints</td><td>Latency, availability, durability, freshness, cost, security, tenancy, regions.</td></tr>
+<tr><td>Entities/access</td><td>What is stored? Which reads and writes dominate? What must be ordered or atomic?</td></tr>
+<tr><td>Client</td><td>Component boundaries, local/server state, loading/error/empty, optimistic/offline/realtime.</td></tr>
+<tr><td>API</td><td>Resource model, pagination, idempotency, versioning, auth and error contract.</td></tr>
+<tr><td>Services/data</td><td>Service boundaries, primary store, indexes, transactions, cache and search.</td></tr>
+<tr><td>Async/realtime</td><td>What leaves the synchronous path? Delivery semantics? Deduplication? Reconnect?</td></tr>
+<tr><td>Failures/scale</td><td>What fails first? Safe degradation? Hot tenant/key? Partitioning and recovery?</td></tr>
+<tr><td>Operations</td><td>SLOs, metrics, traces, audit, migration, rollout and rollback.</td></tr>
+<tr><td>Trade-offs</td><td>What guarantee did you choose, what did it cost, and what alternative did you reject?</td></tr>
+</tbody></table></div>
+
+<h2>Common weak patterns</h2>
+<ul class="checklist warn">
+<li>Starting with React, Kafka, Redis and PostgreSQL before defining the user journey.</li>
+<li>Drawing only backend boxes and calling the browser “the frontend.”</li>
+<li>Adding WebSockets without explaining authentication, reconnection and missed-event recovery.</li>
+<li>Claiming optimistic UI without rollback, idempotency or conflict handling.</li>
+<li>Using offset pagination on a frequently changing feed or board.</li>
+<li>Caching permission-sensitive data without discussing revocation and tenant-aware keys.</li>
+<li>Choosing NoSQL merely because “it scales,” without access patterns or partition key.</li>
+<li>Claiming exactly-once delivery across services instead of designing idempotent effects.</li>
+<li>Ignoring audit history, data deletion and API/event compatibility in enterprise collaboration products.</li>
+<li>Ending without stating guarantees, bottlenecks and unresolved trade-offs.</li>
+</ul>
+
+<h2>A strong closing template</h2>
+<div class="say-this">The synchronous path guarantees [core invariant] in the primary store. The client uses [state model] and [optimistic or pessimistic behaviour], then reconciles against the authoritative response. Search, analytics and notifications consume durable events and may be stale for [bounded period]. Permission checks are enforced on every authoritative read/write and again before sensitive results are returned. The first scaling boundary is [component/key], which I would partition by [choice]. The main trade-off is [decision versus alternative].</div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official 60-minute system-design description and evaluation themes.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">Candidate report: product-agnostic tagging system</a><p>Publicly reported question shape covering tags across Jira, Confluence and Bitbucket.</p></div>
+<div class="reference-item"><a href="https://medium.com/@nitesh14028/atlassian-interview-experience-oct-25-to-feb-26-cd0c75481739" target="_blank" rel="noreferrer">Candidate report: frontend-heavy full-stack topics</a><p>Real-time chat, request lifecycle, authentication and frontend resilience themes.</p></div>
+</div>
+
+<div class="page-actions"><span>Do the tagging question twice: first guided, then from a blank page.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="../ai-code-design/concepts.html"><small>Previous round</small><strong>AI code concepts</strong></a><a class="next" href="tagging-system.html"><small>Next</small><strong>Tagging system →</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>
