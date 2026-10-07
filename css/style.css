@@ -291,8 +291,12 @@ details[open] summary::after { content: "−"; }
 
 .diagram-shell { margin: 22px 0; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); overflow: hidden; }
 .diagram-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 15px; border-bottom: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 800; }
-.mermaid { min-width: 600px; padding: 22px; text-align: center; overflow-x: auto; }
+.mermaid { min-width: 0; padding: 18px 14px; text-align: left; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: thin; overscroll-behavior-x: contain; background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 72%, transparent), var(--surface)); }
 .diagram-note { padding: 12px 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.mermaid svg { max-width: none; }
+.mermaid .node rect, .mermaid .node circle, .mermaid .node polygon, .mermaid .node path { rx: 10px; }
+.mermaid .edgeLabel rect { fill: var(--surface) !important; opacity: .96; }
+.mermaid .label, .mermaid .edgeLabel { color: var(--text); }
 
 .timeline { position: relative; display: grid; gap: 15px; margin: 24px 0; padding-left: 27px; }
 .timeline::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: 9px; width: 2px; background: var(--line); }
@@ -386,7 +390,8 @@ details[open] summary::after { content: "−"; }
   .home-page .main-column { grid-column: auto; }
   .hero-grid { grid-template-columns: 1fr; }
   .card-grid, .card-grid.two, .concept-grid { grid-template-columns: 1fr; }
-  .mermaid { min-width: 680px; }
+  .mermaid { min-width: 0; }
+  .mermaid svg { min-width: 720px; max-width: none !important; }
 }
 
 @media (max-width: 560px) {

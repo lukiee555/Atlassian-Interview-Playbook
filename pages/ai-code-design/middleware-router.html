@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="P40-calibrated AI-enabled code design practice for extending an existing middleware router with wildcard matching and deterministic precedence.">
+<title>Middleware Router - P40 AI Practice - Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<body data-root="../../" data-page="ai-router" data-title="Middleware Router - P40 Practice"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>Middleware Router</span></nav>
+<header class="page-header"><div class="page-kicker">P40 LLD drill 2 - Reframed for the current AI repository round</div><h1>Middleware router with wildcard matching</h1>
+<p class="lead">Extend an existing route registry using TDD: preserve exact-route behavior, add one-segment wildcards, define deterministic precedence, normalize paths, and keep lookup proportional to path length while controlling the AI-generated diff.</p>
+<div class="page-meta"><span class="badge verified">Repeated P40 candidate-reported LLD</span><span class="meta-pill">Java</span><span class="meta-pill">Trie + precedence</span><span class="meta-pill">TDD repository extension</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout success"><span class="callout-title">Evidence boundary</span><p>Several public P40 or P40/P50 reports describe a middleware router or dynamic route-mapping exercise with <code>addRoute</code>/<code>getRoute</code>, wildcard path segments, Trie discussion, and scalability follow-ups. The exact wildcard direction differs across retellings. This page therefore makes that ambiguity an explicit clarification and turns the family into an existing-repository, TDD-first AI exercise. It is not presented as a leaked current HackerRank prompt.</p></div>
+
+<h2>Interviewer question - AI-enabled version</h2>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>This repository contains an exact-match middleware router. Extend it so callers can register patterns containing a single-segment wildcard and resolve request paths deterministically. Exact routes must take priority over wildcard routes, duplicate registration must follow the existing contract, and the public API must remain compatible. Use tests to drive the change and use the AI assistant deliberately.</blockquote></div></div>
+
+<h2>What should I think about first?</h2>
+<div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body"><ol>
+<li><strong>Clarify wildcard semantics.</strong> Is <code>*</code> allowed in the registered pattern, the lookup query, or both? Does it match one segment or the rest of the path?</li>
+<li><strong>Define precedence before data structure.</strong> Exact over wildcard is common, but registration order, named parameters, and catch-all behavior must be explicit.</li>
+<li><strong>Preserve the existing contract.</strong> Duplicate registration, trailing slashes, URL decoding, query strings, and not-found behavior may already be tested.</li>
+<li><strong>Choose a structure from access patterns.</strong> A list scan is simplest for a tiny route set. A segment Trie gives O(number of segments) lookup and clean precedence.</li>
+<li><strong>Make the first change narrow.</strong> Add one wildcard behavior and its tests before introducing named parameters, removal, or thread safety.</li>
+</ol></div></div>
+
+<div class="say-this">I will first confirm where wildcards appear, whether they match one segment or the remaining path, and how ties and duplicate registrations should behave. Then I will inspect the existing exact-match tests, establish a baseline, add the smallest failing wildcard test, implement the minimum compatible change, and add precedence and normalization edge cases before reviewing complexity and concurrency.</div>
+
+<h2>Clarifying questions</h2>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Why it matters</th><th>Practice assumption</th></tr></thead><tbody>
+<tr><td>Can wildcards appear in registered patterns, lookup paths, or both?</td><td>Changes the matching direction and index shape.</td><td>Registered route patterns may contain <code>*</code>; incoming request paths are concrete.</td></tr>
+<tr><td>Does <code>*</code> match one segment or the rest of the path?</td><td>Single-edge Trie versus catch-all/backtracking.</td><td>Exactly one non-empty segment.</td></tr>
+<tr><td>What wins if exact and wildcard patterns both match?</td><td>Deterministic behavior and test expectations.</td><td>Exact segment wins at each level; wildcard is fallback.</td></tr>
+<tr><td>What happens on duplicate registration?</td><td>Update, reject, or multi-handler behavior.</td><td>Preserve the current repository behavior; sample implementation replaces the value.</td></tr>
+<tr><td>Are trailing slashes and repeated slashes equivalent?</td><td>Normalization and cache/index keys.</td><td>Leading/trailing/repeated separators are normalized.</td></tr>
+<tr><td>Should query strings be part of matching?</td><td>Path parser responsibility.</td><td>No; router receives or extracts only the path component.</td></tr>
+<tr><td>Can a pattern contain multiple wildcards?</td><td>Traversal branching.</td><td>Yes, but each wildcard consumes one segment.</td></tr>
+<tr><td>Must registration and lookup be thread-safe?</td><td>Mutation strategy and lock/snapshot choice.</td><td>Not in the first increment; discuss as a follow-up.</td></tr>
+</tbody></table></div>
+
+<h2>What a P40 interviewer is likely testing</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Requirement precision</h3><p>Can you make wildcard direction, cardinality, precedence, normalization and duplicate behavior explicit?</p><div class="interview-cue"><strong>Show it:</strong> write the matching table before coding.</div></div>
+<div class="concept-card"><h3>Data-structure judgment</h3><p>Can you compare a linear scan with a segment Trie based on route count and lookup frequency?</p><div class="interview-cue"><strong>Show it:</strong> start simple, justify the Trie for frequent lookups.</div></div>
+<div class="concept-card"><h3>Backward compatibility</h3><p>Can you add wildcard behavior without changing exact matching or public return/error behavior?</p><div class="interview-cue"><strong>Show it:</strong> run exact-route regression tests first and last.</div></div>
+<div class="concept-card"><h3>Deterministic precedence</h3><p>Can you avoid map-iteration or registration-order ambiguity?</p><div class="interview-cue"><strong>Show it:</strong> exact branch first, wildcard fallback second.</div></div>
+<div class="concept-card"><h3>TDD edge selection</h3><p>Can your tests expose precedence, path-length mismatch, normalization and duplicate bugs?</p><div class="interview-cue"><strong>Show it:</strong> one red behavior at a time.</div></div>
+<div class="concept-card"><h3>Controlled evolution</h3><p>Can you discuss params, catch-all routes and concurrency without implementing speculative complexity?</p><div class="interview-cue"><strong>Show it:</strong> separate current acceptance criteria from follow-ups.</div></div>
+</div>
+
+<h2>Repository discovery before editing</h2>
+<div class="prompt-card"><h4>P40 discovery prompt</h4><div class="prompt-text">Do not edit any files. Trace route registration and lookup from the public API through normalization, storage and not-found handling. Find all exact-match tests, duplicate-registration behavior, path parsing rules, and the focused test command. State whether the current implementation is a map, ordered list or Trie, and give its lookup complexity. Then propose the smallest change that adds a one-segment wildcard while preserving every observed contract. Cite exact files and symbols; mark assumptions.</div></div>
+
+<div class="diagram-shell"><div class="diagram-title">Deterministic segment traversal</div><pre class="mermaid">
+flowchart LR
+  P[Concrete request path] --> N[Normalize and split segments]
+  N --> R[Root node]
+  R --> E{Exact child exists?}
+  E -->|yes| X[Take exact branch]
+  E -->|no| W{Wildcard child exists?}
+  W -->|yes| Y[Consume one segment]
+  W -->|no| M[No match]
+  X --> Z{More segments?}
+  Y --> Z
+  Z -->|yes| E
+  Z -->|no| H{Handler at node?}
+  H -->|yes| O[Return handler]
+  H -->|no| M
+</pre><div class="diagram-note">If both branches can lead to a match and the contract is more complex, use bounded backtracking with exact-first order. Do not rely on map iteration order.</div></div>
+
+<h2>Acceptance criteria</h2>
+<ul class="checklist">
+<li>All pre-existing exact routes resolve exactly as before.</li>
+<li>A registered <code>*</code> matches exactly one path segment.</li>
+<li>An exact segment wins over a wildcard at the same depth.</li>
+<li>A wildcard does not match a missing segment or two segments.</li>
+<li>Path normalization follows the repository's established slash policy.</li>
+<li>Duplicate registration follows the existing contract and is tested.</li>
+<li>Not-found behavior and public API shape remain compatible.</li>
+<li>Lookup is O(S) for an unambiguous Trie path, where S is the number of segments; bounded branching is explained if supported.</li>
+<li>Focused and exact-route regression tests pass; no unrelated framework refactor is included.</li>
+</ul>
+
+<h2>TDD plan: RED to GREEN without a rewrite</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">Baseline</div><h3>Lock exact behavior</h3><p>Run existing route tests. Add no production code. Record duplicate and slash semantics.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 1</div><h3>One wildcard segment</h3><p>Register <code>/teams/*/issues</code>; resolve <code>/teams/alpha/issues</code>; confirm the test fails for the expected reason.</p></div>
+<div class="timeline-item"><div class="timeline-time">GREEN 1</div><h3>Minimum branch</h3><p>Add a wildcard edge or smallest matching logic. Keep exact routes unchanged.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 2</div><h3>Precedence</h3><p>Register both <code>/teams/admin/issues</code> and <code>/teams/*/issues</code>; require exact to win.</p></div>
+<div class="timeline-item"><div class="timeline-time">GREEN 2</div><h3>Deterministic traversal</h3><p>Search exact before wildcard and avoid registration-order behavior.</p></div>
+<div class="timeline-item"><div class="timeline-time">Refactor</div><h3>Normalize once</h3><p>Extract path parsing only if duplicated; keep public API and focused tests green.</p></div>
+<div class="timeline-item"><div class="timeline-time">Regression</div><h3>Edge matrix</h3><p>Length mismatch, root, trailing slash, duplicate route, no match, multiple wildcards.</p></div>
+</div>
+
+<h2>Compare implementation approaches</h2>
+<div class="table-wrap"><table><thead><tr><th>Approach</th><th>Strength</th><th>Weakness</th><th>When to choose</th></tr></thead><tbody>
+<tr><td>Ordered list of compiled patterns</td><td>Smallest change; easy to understand.</td><td>O(R x S) lookup and precedence depends on careful sorting.</td><td>Tiny route set or existing list implementation.</td></tr>
+<tr><td>Regex per route</td><td>Flexible syntax.</td><td>Harder precedence, escaping, performance and explainability.</td><td>Only if regex patterns already define the contract.</td></tr>
+<tr><td>Segment Trie</td><td>O(S) common-case lookup, natural exact/wildcard precedence.</td><td>More code; catch-all/params can introduce branching.</td><td>Frequent lookups or growing route count.</td></tr>
+<tr><td>Framework router replacement</td><td>Mature feature set.</td><td>Large dependency/API change; poor interview scope.</td><td>Not for this narrow repository task unless explicitly required.</td></tr>
+</tbody></table></div>
+
+<div class="say-this">For a small existing list I would first consider the minimum scan-based extension. If this registry serves every request and route count can grow, a segment Trie is a reasonable P40 choice because the path itself is already segmented and exact-over-wildcard precedence becomes explicit. I would not introduce regex or a routing framework without repository evidence.</div>
+
+<h2>Illustrative Java design</h2>
+<pre><code class="language-java">public final class RouteRegistry&lt;T&gt; {
+    private static final String WILDCARD = "*";
+    private final Node&lt;T&gt; root = new Node&lt;&gt;();
+
+    public void addRoute(String pattern, T value) {
+        Objects.requireNonNull(value, "value");
+        Node&lt;T&gt; current = root;
+        for (String segment : segments(pattern)) {
+            if (WILDCARD.equals(segment)) {
+                if (current.wildcard == null) {
+                    current.wildcard = new Node&lt;&gt;();
+                }
+                current = current.wildcard;
+            } else {
+                current = current.exact.computeIfAbsent(
+                        segment, ignored -&gt; new Node&lt;&gt;());
+            }
+        }
+        // Practice contract: registering the same pattern replaces its value.
+        current.value = value;
+    }
+
+    public Optional&lt;T&gt; getRoute(String requestPath) {
+        return match(root, segments(requestPath), 0);
+    }
+
+    private Optional&lt;T&gt; match(Node&lt;T&gt; node,
+                               List&lt;String&gt; parts,
+                               int index) {
+        if (index == parts.size()) {
+            return Optional.ofNullable(node.value);
+        }
+
+        String segment = parts.get(index);
+        Node&lt;T&gt; exact = node.exact.get(segment);
+        if (exact != null) {
+            Optional&lt;T&gt; result = match(exact, parts, index + 1);
+            if (result.isPresent()) {
+                return result;
+            }
+        }
+
+        if (node.wildcard != null) {
+            return match(node.wildcard, parts, index + 1);
+        }
+        return Optional.empty();
+    }
+
+    private List&lt;String&gt; segments(String rawPath) {
+        if (rawPath == null || rawPath.isBlank()) {
+            throw new IllegalArgumentException("path must not be blank");
+        }
+        return Arrays.stream(rawPath.split("/+"))
+                .filter(part -&gt; !part.isBlank())
+                .toList();
+    }
+
+    private static final class Node&lt;T&gt; {
+        private final Map&lt;String, Node&lt;T&gt;&gt; exact = new HashMap&lt;&gt;();
+        private Node&lt;T&gt; wildcard;
+        private T value;
+    }
+}</code></pre>
+
+<div class="callout warning"><span class="callout-title">Illustrative, not a forced architecture</span><p>In the actual interview, preserve existing classes, path parser and error contract. If the repository already uses an ordered route list, a small tested extension may be safer than replacing it with a Trie during a one-hour round.</p></div>
+
+<h2>Focused JUnit tests</h2>
+<pre><code class="language-java">class RouteRegistryTest {
+    private final RouteRegistry&lt;String&gt; routes = new RouteRegistry&lt;&gt;();
+
+    @Test
+    void wildcardMatchesExactlyOneSegment() {
+        routes.addRoute("/teams/*/issues", "team-issues");
+
+        assertThat(routes.getRoute("/teams/alpha/issues"))
+                .contains("team-issues");
+        assertThat(routes.getRoute("/teams/issues")).isEmpty();
+        assertThat(routes.getRoute("/teams/a/b/issues")).isEmpty();
+    }
+
+    @Test
+    void exactRouteWinsOverWildcard() {
+        routes.addRoute("/teams/*/issues", "generic");
+        routes.addRoute("/teams/admin/issues", "admin");
+
+        assertThat(routes.getRoute("/teams/admin/issues"))
+                .contains("admin");
+        assertThat(routes.getRoute("/teams/alpha/issues"))
+                .contains("generic");
+    }
+
+    @Test
+    void duplicateRegistrationUsesCurrentReplacementContract() {
+        routes.addRoute("/health", "v1");
+        routes.addRoute("/health", "v2");
+
+        assertThat(routes.getRoute("/health")).contains("v2");
+    }
+
+    @Test
+    void normalizesRepeatedAndTrailingSeparators() {
+        routes.addRoute("/teams/*/issues/", "handler");
+
+        assertThat(routes.getRoute("//teams//alpha//issues//"))
+                .contains("handler");
+    }
+}</code></pre>
+
+<h2>AI prompts for this question</h2>
+<div class="prompt-card"><h4>Discovery - prove the current contract</h4><div class="prompt-text">Do not edit. Find the public add/register and get/resolve methods, all route tests, normalization logic, duplicate behavior, not-found contract and current lookup complexity. Build a table of observed behavior with file and line references. Highlight whether wildcards are currently interpreted during registration, lookup or nowhere.</div></div>
+<div class="prompt-card"><h4>RED - first wildcard behavior</h4><div class="prompt-text">Do not change production code. Using the existing test style, add the smallest failing test for a registered pattern /teams/*/issues resolving the concrete path /teams/alpha/issues. Assert that * consumes exactly one segment. Run only this test, show the failure, and stop.</div></div>
+<div class="prompt-card"><h4>GREEN - minimum compatible implementation</h4><div class="prompt-text">Implement only enough wildcard matching to make the focused test pass while preserving exact-route behavior and the public API. Follow the repository's existing data structure unless there is clear evidence it cannot support the requirement safely. Show the diff and run the focused plus existing exact-route tests. Stop before adding parameters or catch-all syntax.</div></div>
+<div class="prompt-card"><h4>RED - precedence and normalization</h4><div class="prompt-text">Add separate failing tests proving that an exact route wins over an overlapping wildcard route and that path normalization follows the current repository contract. Do not weaken or rewrite existing tests. Run the new tests and explain each failure before implementation.</div></div>
+<div class="prompt-card"><h4>Design review - list scan versus Trie</h4><div class="prompt-text">Compare the current implementation with a segment Trie for this repository. Quantify lookup and registration complexity, precedence behavior, code churn and migration risk. Recommend one option for a 60-minute P40 interview and explain what evidence would make you choose the other. Do not edit.</div></div>
+<div class="prompt-card"><h4>Final skeptical review</h4><div class="prompt-text">Review the current diff as a P40 code-design interviewer. Check wildcard direction and cardinality, deterministic precedence, path-length handling, duplicate registration, normalization, exact-route regressions, complexity, thread-safety assumptions and unrelated changes. Cite concrete files and failure scenarios. Do not edit.</div></div>
+
+<h2>Likely P40 follow-ups</h2>
+<section class="details-group"><div data-details-actions><button class="mini-button" data-expand type="button">Expand all</button><button class="mini-button" data-collapse type="button">Collapse all</button></div>
+<details><summary>How would you add named parameters such as <code>:teamId</code>?</summary><p>Add a parameter child distinct from the wildcard child, capture the consumed segment into a parameter map, and define precedence such as exact &gt; named parameter &gt; wildcard. Ensure only one parameter child exists at a node regardless of parameter name, or explicitly define conflict behavior.</p></details>
+<details><summary>How would you support a catch-all route?</summary><p>Use a separate catch-all edge that consumes zero or more remaining segments and is evaluated after exact, parameter and single-segment wildcard branches. Because this creates more ambiguity, define whether it must be terminal and test precedence explicitly.</p></details>
+<details><summary>What if multiple wildcard patterns match?</summary><p>Do not use registration order accidentally. Define specificity rules: more exact segments, then fewer wildcards, then an explicit stable tie-breaker or reject ambiguous registrations. A compile-time ambiguity check can keep lookup simple.</p></details>
+<details><summary>How would you make registration and lookup thread-safe?</summary><p>If routes are built at startup and then read, publish an immutable snapshot. If live registration is required, use copy-on-write snapshots or a read-write lock around mutation; avoid holding a global lock on every lookup. The choice depends on update frequency and language/runtime.</p></details>
+<details><summary>How would you support route removal?</summary><p>Clear the terminal handler, then prune empty nodes bottom-up only when they have no value and no children. Test that removing one route does not delete a shared prefix.</p></details>
+<details><summary>Why not compile every route to regex?</summary><p>Regex is viable for a small route set, but it makes precedence and escaping less transparent and usually requires scanning every pattern. A segment Trie maps directly to the domain and keeps common lookup proportional to path length.</p></details>
+<details><summary>How would you include HTTP method or host?</summary><p>Make them part of the routing key or a first-level index, for example method -&gt; host -&gt; path Trie. Preserve method-specific 404/405 semantics rather than treating everything as one path namespace.</p></details>
+<details><summary>What should happen with URL-encoded slashes?</summary><p>Clarify where decoding occurs. Decode exactly once in a trusted boundary and avoid converting an encoded slash into a new path segment unexpectedly. Reuse the framework parser rather than hand-rolling security-sensitive URL decoding.</p></details>
+</section>
+
+<h2>Common mistakes</h2>
+<ul class="checklist warn">
+<li>Implementing a Trie before defining whether wildcard is registered or queried.</li>
+<li>Letting wildcard precedence depend on hash-map or registration iteration order.</li>
+<li>Making <code>*</code> match zero, one and many segments in different paths.</li>
+<li>Breaking exact-route behavior or the existing not-found/error contract.</li>
+<li>Normalizing paths differently in <code>addRoute</code> and <code>getRoute</code>.</li>
+<li>Adding named params, catch-all routes, methods, hosts and middleware chains before the first test is green.</li>
+<li>Accepting an AI-generated full rewrite without comparing the diff to the narrow requirement.</li>
+</ul>
+
+<h2>Two-minute closing summary</h2>
+<div class="say-this">I preserved the existing exact-route contract and added a one-segment wildcard through tests first. The matching semantics are explicit: normalized path segments, exact branch before wildcard fallback, and no match when path length differs. I chose the existing structure if it remained simple; otherwise a segment Trie keeps common lookup proportional to path length and makes precedence visible. I ran exact-route regression tests, reviewed the diff for normalization and duplicate behavior, and left named parameters, catch-all matching and concurrent updates as clearly scoped follow-ups rather than speculative code.</div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-karat-round-technical-round-code-design-round-p40" target="_blank" rel="noreferrer">P40 report - Dynamic Route Mapping</a><p>Reports route registration, wildcard lookup, Trie improvement, and performance/scalability discussion.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">P40/P50 report - Middleware Router</a><p>Independently reports Middleware Router as the Code Design task.</p></div>
+<div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official emphasis on problem-solving, communication and design trade-offs.</p></div>
+</div>
+
+<div class="page-actions"><span>Practice objective: define matching semantics before choosing the data structure.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="agent-rating-system.html"><small>Previous</small><strong>Agent Rating System</strong></a><a class="next" href="api-rate-limiter.html"><small>Next</small><strong>API Rate Limiter -&gt;</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

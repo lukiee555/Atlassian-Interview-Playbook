@@ -2,8 +2,8 @@
 
 A lightweight static interview-preparation website for the complete Atlassian full-stack loop:
 
-- **AI-Enabled Code Design** — repository discovery, bounded AI use, Java feature/bug simulations, testing and diff review.
-- **Full-Stack Based System Design** — progressive designs for product-agnostic tagging, a Jira/Trello board and a Confluence popular-content feed.
+- **AI-Enabled Code Design** — repository discovery, bounded AI use, TDD-first current-format simulations plus four P40 LLD drills: Agent Rating, Middleware Router, API Rate Limiter and Snake Game.
+- **Full-Stack Based System Design** — P40-calibrated progressive designs for product-agnostic tagging, a Confluence engagement homepage and a Jira/Trello board.
 - **Management Interview** — official format, candidate-reported questions, a pricing-first personalized answer library, project deep dives and an interactive mock.
 - **Values Interview** — all five official values, a complete question bank, primary and backup personalized stories, a ten-story matrix and an interactive mock.
 
@@ -13,7 +13,7 @@ The site is structured as an interview simulation rather than a collection of no
 
 - Static HTML, CSS and JavaScript; no backend or build step.
 - Responsive sidebar/mobile drawer, page table of contents and reading progress.
-- Global search with `Cmd/Ctrl + K` or `/` across all 27 pages.
+- Global search with `Cmd/Ctrl + K` or `/` across all 32 pages.
 - Light/dark mode, print-friendly pages and local review progress.
 - Copy buttons for prompts and code; local PrismJS syntax highlighting.
 - Mermaid diagrams rendered in the browser without modifying diagram source.
@@ -49,11 +49,11 @@ The site deliberately does not over-rely on one project. The portfolio includes:
 │   └── prism-bundle.js
 ├── assets/
 ├── pages/
-│   ├── ai-code-design/        # 5 pages
+│   ├── ai-code-design/        # 9 pages
 │   ├── system-design/         # 7 pages
 │   ├── management/            # 5 pages
 │   ├── values/                # 6 pages
-│   └── quick-revision/        # 3 pages
+│   └── quick-revision/        # 4 pages
 ├── RESEARCH-SOURCES.md
 └── README.md
 ```
@@ -122,3 +122,32 @@ Candidate reports are anecdotal and formats can vary by role, level, location an
 
 - Copy controls skip `<pre class="mermaid">`, so Mermaid source is not altered before rendering.
 - Mermaid is pinned to version `11.17.2` for reproducible rendering.
+
+
+## 2026-10-07 official guide update
+Updated from the Fullstack Engineer Interview Guide provided by Atlassian: TDD-first AI Code Design flow, debugger/alternative-solution guidance, official Management four-pillar rubric, exact Values prompt emphasis, interviewer questions, and an Official Guide quick-revision page.
+
+
+## 2026-10-07 P40 evidence update
+
+The technical preparation was recalibrated after a P40-specific sweep of publicly indexed LeetCode and other candidate reports. Evidence is weighted in this order:
+
+1. Direct, question-bearing P40 LeetCode offer reports.
+2. Recent first-person P40/P40-P50 candidate reports.
+3. Repeated question families across independent reports.
+4. Current editorial candidate-report syntheses, used only when the underlying exact report is not public.
+
+### P40 Code Design priority
+
+1. **Agent Rating / Customer Satisfaction** — direct LeetCode P40 offer report; averages, deterministic ordering, monthly winners and explicit TDD.
+2. **Middleware Router / Dynamic Route Mapping** — repeatedly reported P40 family; wildcard semantics, precedence, Trie trade-offs and compatibility.
+3. **API Rate Limiter** — newest P40 code-quality signal located in a Q3 2026 candidate-report synthesis; time, atomicity, key scope and distributed evolution.
+4. **Snake Game with Nth-food growth** — recent direct P40 offer report; state modelling, modularity and edge cases.
+
+All four are deliberately reframed as **existing-repository, AI-assisted, TDD-first exercises** because the current interview format described by Atlassian is different from the older standalone LLD format.
+
+### P40 System Design priority
+
+1. **Product-agnostic Tagging** — strongest repeated P40 HLD and directly documented in a detailed LeetCode P40 offer report.
+2. **Confluence Most-Engaged Homepage** — exact recent P40 offer-round variant with authored/read exclusions and schema/filtering depth.
+3. **Jira/Trello Board** — retained as the best Full-Stack transfer drill, but labelled lower-confidence for direct P40 question frequency.

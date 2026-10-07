@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Complete full-stack system design playbook for a Jira or Trello style board."><title>Jira / Trello Board · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
 <body data-root="../../" data-page="jira-board" data-title="Jira / Trello Board"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Jira / Trello Board</span></nav>
-<header class="page-header"><div class="page-kicker">Detailed playbook 2 · Collaboration + ordering</div><h1>Jira / Trello-style work board</h1><p class="lead">Design a board where users create cards, drag them across columns, reorder them, collaborate in real time and preserve workflow rules, permissions and activity history.</p>
-<div class="page-meta"><span class="badge verified">Candidate-reported full-stack topic</span><span class="meta-pill">Optimistic UI</span><span class="meta-pill">Ordering</span><span class="meta-pill">Realtime</span></div></header>
+<header class="page-header"><div class="page-kicker">P40 detailed playbook 3 - Collaboration + ordering</div><h1>Jira / Trello-style work board</h1><p class="lead">Design a board where users create cards, drag them across columns, reorder them, collaborate in real time and preserve workflow rules, permissions and activity history.</p>
+<div class="page-meta"><span class="badge verified">Candidate-reported full-stack topic</span><span class="badge high">P40 calibrated</span><span class="meta-pill">Optimistic UI</span><span class="meta-pill">Ordering</span><span class="meta-pill">Realtime</span></div></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
+<div class="callout success"><span class="callout-title">Why this stays in the P40 set</span><p>Tagging and the Confluence engagement homepage have stronger direct P40 report evidence, but the board remains the best Full-Stack transfer drill. It forces you to connect React state, optimistic UX, API contracts, transactional ordering, workflow validation and real-time reconciliation. At P40, go deep on those concrete paths rather than adding staff-level global architecture by default.</p></div>
 <div class="callout info"><span class="callout-title">The hard part</span><p>CRUD is not the differentiator. The design should explain stable ordering without renumbering an entire column, optimistic drag-and-drop with rollback, legal workflow transitions, concurrent collaborators, event ordering and permission revocation.</p></div>
 
 <h2>Interviewer question</h2>
@@ -36,6 +37,17 @@
 <tr><td>What audit/history is needed?</td><td>Append-only activity events and retention.</td><td>Every create/update/move is attributable and queryable.</td></tr>
 <tr><td>How are permissions scoped?</td><td>Subscription and cache safety.</td><td>Tenant → project → board/card capabilities.</td></tr>
 </tbody></table></div>
+
+<h2>P40 target depth</h2>
+<ul class="checklist">
+<li>Define the move-card API precisely: operation ID, expected version, target column and neighboring rank anchors.</li>
+<li>Propose tables and indexes for loading a column in rank order and updating one card atomically.</li>
+<li>Explain one ranking strategy and its rebalance trade-off rather than listing many algorithms.</li>
+<li>Connect the optimistic React update to rollback, authoritative response and echoed realtime event handling.</li>
+<li>Handle two concurrent moves of the same card with versioning/conflict response.</li>
+<li>Cover permission/workflow rejection and one reconnect/event-gap scenario.</li>
+<li>State what you would postpone: offline write conflict resolution, global active-active and arbitrary workflow plugins unless asked.</li>
+</ul>
 
 <h2>Requirements</h2>
 <h3>Functional requirements</h3>
@@ -344,5 +356,5 @@ sequenceDiagram
 <div class="reference-list"><div class="reference-item"><a href="https://www.glassdoor.com/Interview/Atlassian-Full-Stack-Software-Engineer-Interview-Questions-EI_IE115699.0%2C9_KO10%2C38.htm" target="_blank" rel="noreferrer">Candidate reports: Atlassian full-stack questions</a><p>Public reports include Jira-board and Notion-style design topics; exact prompts vary.</p></div><div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official system-design expectations.</p></div></div>
 
 <div class="page-actions"><span>Next: derive a Top-K feed from event and freshness requirements.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
-<nav class="page-nav"><a href="tagging-system.html"><small>Previous</small><strong>Tagging system</strong></a><a class="next" href="popular-feed.html"><small>Next</small><strong>Popular-content feed →</strong></a></nav>
+<nav class="page-nav"><a href="popular-feed.html"><small>Previous</small><strong>P40 Confluence Engagement</strong></a><a class="next" href="follow-ups.html"><small>Next</small><strong>Follow-up bank &rarr;</strong></a></nav>
 </article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

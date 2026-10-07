@@ -1,15 +1,17 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Complete interview playbook for designing a product-agnostic tagging system across Jira, Confluence and Bitbucket."><title>Product-Agnostic Tagging System · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
 <body data-root="../../" data-page="tagging-system" data-title="Product-Agnostic Tagging System"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Tagging System</span></nav>
-<header class="page-header"><div class="page-kicker">Detailed playbook 1 · Highest priority</div><h1>Product-agnostic tagging across Jira, Confluence and Bitbucket</h1><p class="lead">Build one tagging platform that can attach tags to different product content, retrieve content by tag, calculate popular tags, respect tenant permissions, and onboard future products without redesigning the core.</p>
-<div class="page-meta"><span class="badge verified">Repeated candidate-reported prompt</span><span class="meta-pill">Multi-tenant</span><span class="meta-pill">Search + Top-K</span><span class="meta-pill">Permissions</span></div></header>
+<header class="page-header"><div class="page-kicker">P40 detailed playbook 1 - Highest priority</div><h1>Product-agnostic tagging across Jira, Confluence and Bitbucket</h1><p class="lead">Build one tagging platform that can attach tags to different product content, retrieve content by tag, calculate popular tags, respect tenant permissions, and onboard future products without redesigning the core.</p>
+<div class="page-meta"><span class="badge verified">Repeated P40 candidate-reported prompt</span><span class="badge high">P40 Priority 1</span><span class="meta-pill">Multi-tenant</span><span class="meta-pill">Search + Top-K</span><span class="meta-pill">Permissions</span></div></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
 <div class="callout success"><span class="callout-title">Why this is your first system-design practice</span><p>This question has appeared repeatedly in public Atlassian candidate reports, including around your experience level. It tests API/data design, extensibility, permissions, search, streaming popularity and the ability to connect frontend experience to backend guarantees.</p></div>
+
+<div class="callout info"><span class="callout-title">What recent P40 reports add</span><p>Do not stop at a generic diagram. Public P40 reports describe deep follow-ups on exact HTTP methods and parameter placement, pagination, schema and indexes, Postgres versus Cassandra/DynamoDB, Kafka versus SQS/RabbitMQ, and a Top-K popular-tags dashboard with a freshness target. This page already covers those topics; treat them as the likely deep-dive area.</p></div>
 
 <h2>Interviewer question</h2>
 <div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>Atlassian products contain different content types—for example Jira issues, Confluence pages and Bitbucket pull requests. Design a product-agnostic system that lets users add, remove and update tags, open a tag to see associated content, and view popular tags. New products should be easy to add.</blockquote></div></div>
@@ -35,6 +37,16 @@
 <tr><td>How quickly must mutation, search and popularity update?</td><td>Defines sync versus async boundaries.</td><td>Mutation read-after-write immediate; search/typeahead seconds; popularity under five minutes.</td></tr>
 <tr><td>Do we need bulk tagging?</td><td>Changes API, partial failures and rate controls.</td><td>Single-item mutation initially; batch API can be added with per-item result.</td></tr>
 <tr><td>What happens when content or a tenant is deleted?</td><td>Requires tombstone/cleanup and privacy handling.</td><td>Products emit lifecycle events; associations are removed asynchronously with auditability.</td></tr>
+</tbody></table></div>
+
+<h2>P40 pressure-test checklist</h2>
+<div class="table-wrap"><table><thead><tr><th>Interviewer push</th><th>What your answer should contain</th></tr></thead><tbody>
+<tr><td>Why REST rather than GraphQL?</td><td>Mutation semantics and cacheability are simple REST resources; GraphQL may help cross-product read composition but complicates permission-aware caching. Choose based on client/access needs.</td></tr>
+<tr><td>Why Postgres rather than Cassandra/DynamoDB?</td><td>Start from uniqueness, rename transactions and bidirectional access patterns. Explain the partition-key and hot-tag implications if moving associations to a wide-column/key-value store.</td></tr>
+<tr><td>Kafka, SQS or RabbitMQ?</td><td>Kafka for replayable ordered event streams and multiple consumers; SQS for simple managed work queues; RabbitMQ for flexible routing/ack patterns. Tie the choice to popularity/search consumers and replay needs.</td></tr>
+<tr><td>How do you page a very hot tag?</td><td>Stable cursor over a deterministic sort key, bounded permission overfetch, partition/hot-key plan and no offset scan.</td></tr>
+<tr><td>How do you calculate Top-K under five minutes?</td><td>Association/view events, idempotent stream aggregation, materialized per-tenant sorted set/table, and durable rebuild source.</td></tr>
+<tr><td>What is strongly consistent?</td><td>Tag identity and add/remove association. Search suggestions and popular tags may be briefly stale; authorization may not be bypassed by stale projections.</td></tr>
 </tbody></table></div>
 
 <h2>Requirements</h2>
@@ -424,11 +436,12 @@ sequenceDiagram
 
 <h2>References</h2>
 <div class="reference-list">
+<div class="reference-item"><a href="https://leetcode.com/discuss/post/7070747/atlassian-p40-india-offer-by-anonymous_u-6mbf/" target="_blank" rel="noreferrer">LeetCode: P40 India offer</a><p>Direct P40 report of the Product-Agnostic Tagging Management Service and the API, schema, database and messaging areas discussed.</p></div>
 <div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">Candidate-reported tagging prompt</a><p>Public report describing cross-product tags, content-by-tag and popular-tag experiences.</p></div>
 <div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-accepted" target="_blank" rel="noreferrer">Candidate report: Top-K follow-ups</a><p>Public report noting API, queue and database trade-off discussion around popular tags.</p></div>
 <div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Official Atlassian engineering interview guide</a><p>System-design evaluation and communication expectations.</p></div>
 </div>
 
 <div class="page-actions"><span>Practise once with guidance, then reproduce it from a blank page.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
-<nav class="page-nav"><a href="index.html"><small>Previous</small><strong>Round overview</strong></a><a class="next" href="jira-board.html"><small>Next</small><strong>Jira / Trello board →</strong></a></nav>
+<nav class="page-nav"><a href="index.html"><small>Previous</small><strong>Round overview</strong></a><a class="next" href="popular-feed.html"><small>Next</small><strong>P40 Confluence Engagement &rarr;</strong></a></nav>
 </article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

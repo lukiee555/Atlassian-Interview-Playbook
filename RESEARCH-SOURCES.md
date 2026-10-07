@@ -1,24 +1,65 @@
 # Research Sources
 
-Research checked: **October 3, 2026**.
+Research checked: **October 7, 2026**.
 
-## Source labels
+## Evidence policy
 
-- **Official**: Atlassian publishes the format, value definition or prompt family.
-- **Candidate-reported**: a public first-person or curated candidate account; not independently verified and not a guaranteed current question.
-- **Practice variant**: an editorial preparation prompt or a logical follow-up; useful for simulation, not evidence of exact wording.
+- **Official**: Atlassian publishes the current format, evaluation signal or value definition.
+- **Direct P40 LeetCode**: a public first-person P40 report containing exact questions; highest weight for question selection.
+- **Candidate-reported**: a public first-person P40/P40-P50 account; anecdotal and not a guaranteed current prompt.
+- **Editorial synthesis**: a current compilation of candidate reports; used only when the underlying exact report is not publicly visible.
+- **Practice reconstruction**: an interview simulation created for the current AI-enabled repository format; never presented as a leaked prompt.
+
+A broad LeetCode sweep was performed using P40, SDE2, Full Stack, Code Design, LLD and System Design variants. The detailed, question-bearing P40 LeetCode report below was the strongest public result. Other recent P40 LeetCode results located in the sweep were compensation-only posts or links back to that experience, so they were not counted as independent question evidence.
 
 ## Official Atlassian sources
 
 - Engineering Interview Handbook: https://www.atlassian.com/company/careers/resources/interviewing/engineering
-- Fullstack Engineering Interview Guide: https://www.atlassian.com/dam/jcr:aef2ccf9-8430-4e24-b58e-e779b2a6298d/P30-P50-Fullstack-Craft-Guide.pdf
+- Fullstack Engineer Interview Guide supplied directly by the recruiter/candidate coordinator (local project source)
 - Core values: https://www.atlassian.com/company/values
 
-## Candidate reports and community sources
+The supplied guide is the source of truth for the current AI-enabled repository format, TDD emphasis, debugger guidance, 60-minute System Design format, Management pillars and Values prompt families.
+
+## Direct P40 LeetCode evidence
+
+- **Atlassian | P40 | India [Offer], Aug 12, 2025**: https://leetcode.com/discuss/post/7070747/atlassian-p40-india-offer-by-anonymous_u-6mbf/
+  - Code Design: Customer Satisfaction / Agent Rating, average ordering, monthly best agents and explicit TDD.
+  - System Design: Product-agnostic Tagging Management across Jira, Confluence and Bitbucket; API, schema, database, messaging and rate-limiting discussion.
+- **Atlassian | P40 | India [Accepted], Aug 11, 2025**: https://leetcode.com/discuss/post/7069410/atlassian-p40-india-accepted-by-anonymou-p3qh/
+  - Compensation/acceptance companion linking to the detailed experience above; not treated as independent question evidence.
+- **New Atlassian SDE2 (P40) Offer, Jan 15, 2026**: https://leetcode.com/discuss/post/7496550/
+  - Compensation-only; excluded from question-frequency weighting.
+
+## P40 Code Design / LLD candidate reports
+
+- Dynamic Route Mapping, May 21, 2025: https://interviewexperiences.in/experience/atlassian/atlassian-karat-round-technical-round-code-design-round-p40
+  - Route registration, wildcard matching, Trie and scalability.
+- P40 offer, Apr/May 2025: https://interviewexperiences.in/experience/atlassian/atlassian-p40-interview-experience
+  - String key get/put with wildcard search; corner cases, design and exceptions.
+- P40/P50, Jul 10, 2025: https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50
+  - Middleware Router Code Design and Product-Agnostic Content Tagging HLD.
+- P40 India offer, Jul 14, 2025: https://interviewexperiences.in/experience/atlassian/atlassian-p40-india-offer-1
+  - Nokia Snake Game LLD and Tag Management HLD.
+- P40 Bangalore offer, Sep 16, 2025: https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer
+  - Snake Game with Nth-food growth and Confluence Most-Engaged Homepage with authored/read exclusions.
+- P40 accepted: https://interviewexperiences.in/experience/atlassian/atlassian-p40-accepted
+  - Rating System, deterministic tie-breakers and concurrency follow-ups.
+- 2026 candidate-report synthesis: https://www.interviewquery.com/guides/atlassian-software-engineer
+  - A Q3 2026 P40 report names an API Rate Limiter as the code-structure/quality exercise. This is treated as a recent signal, not direct exact-prompt evidence.
+
+## P40 System Design candidate reports
+
+- Direct LeetCode P40 offer report above — Product-Agnostic Tagging.
+- P40/P50 Jul 2025 report above — Content Tagging.
+- P40 Apr/May 2025 offer report above — Tag Management.
+- P40 Jul 2025 India offer report above — Tag Management.
+- P40 Bangalore Sep 2025 offer report above — Confluence Most-Engaged Homepage with authored/read exclusions.
+- Interview Experiences, P40 India offer: https://interviewexperiences.in/experience/atlassian/atlassian-p40-india-offer
+  - Additional P40 question and design evidence.
+
+## Management and Values sources
 
 - Interview Experiences, P50 July-Aug 2025: https://interviewexperiences.in/experience/atlassian/atlassian-p50-interview-experience-july-aug-2025
-- Interview Experiences, P40 accepted: https://interviewexperiences.in/experience/atlassian/atlassian-p40-accepted
-- Interview Experiences, P40 Bangalore offer: https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer
 - GeeksforGeeks SDE experience: https://www.geeksforgeeks.org/interview-experiences/atlassian-interview-experience-for-sde/
 - Medium candidate report (mentoring and feedback): https://medium.com/@akshat.batra.91/atlassian-interview-experience-c26ea716305e
 - Medium candidate report (complex project and conflict): https://medium.com/@singht216/atlassian-interview-experience-frontend-software-engineer-8f69f3c5c8ea
@@ -31,7 +72,6 @@ Research checked: **October 3, 2026**.
 - Coditioning manager guide (2026): https://www.coditioning.com/blog/3905/atlassian-swe-manager-interview
 - Coditioning values guide (2026): https://www.coditioning.com/blog/3906/atlassian-swe-values-interview
 - SpaceComplexity behavioral guide: https://spacecomplexity.ai/blog/atlassian-behavioral-interview-questions
-- InterviewQuery overview: https://www.interviewquery.com/guides/atlassian-software-engineer
 
 ## Personalized experience basis
 

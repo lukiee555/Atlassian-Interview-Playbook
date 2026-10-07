@@ -1,40 +1,43 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Complete system design interview playbook for a popular-content feed for Confluence."><title>Confluence Popular Feed · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
-<body data-root="../../" data-page="popular-feed" data-title="Confluence Popular Feed"><div id="reading-progress"></div><div id="site-header"></div>
+<meta name="description" content="P40 system design interview playbook for a Confluence most-engaged homepage that excludes authored and already-read documents."><title>P40 Confluence Engagement Homepage - Atlassian Playbook</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<body data-root="../../" data-page="popular-feed" data-title="P40 Confluence Engagement Homepage"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
-<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Popular Feed</span></nav>
-<header class="page-header"><div class="page-kicker">Detailed playbook 3 · Stream processing + Top-K</div><h1>Popular-content feed for Confluence</h1><p class="lead">Ingest views, likes, comments and shares; compute recent Top-K content; filter every result through current permissions; and update the browser without making the feed jump continuously.</p>
-<div class="page-meta"><span class="badge verified">Recent candidate-reported topic</span><span class="meta-pill">Event stream</span><span class="meta-pill">Windowed ranking</span><span class="meta-pill">Realtime UX</span></div></header>
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Confluence Engagement Homepage</span></nav>
+<header class="page-header"><div class="page-kicker">Detailed playbook 2 - Exact P40 offer-round variant</div><h1>Confluence most-engaged homepage</h1><p class="lead">Rank the most-engaged documents across an organization, then personalize the result by excluding pages the requesting user authored or already read while preserving current permissions, low latency and a stable frontend experience.</p>
+<div class="page-meta"><span class="badge verified">Direct P40 offer report</span><span class="meta-pill">Leaderboard + exclusions</span><span class="meta-pill">Permission-safe retrieval</span><span class="meta-pill">Full-stack UX</span></div></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
-<div class="callout info"><span class="callout-title">The key interview move</span><p>Define “popular” before choosing Kafka or Redis. Scope, signals, time window, freshness, personalization, permissions and abuse resistance determine the architecture.</p></div>
+<div class="callout success"><span class="callout-title">Why this is P40 priority 2</span><p>A September 2025 P40 offer report describes a YouTube-like Confluence homepage showing the most engaged documents while excluding documents the user authored or already read. The candidate specifically received database-schema feedback around per-user ranking and read-history filtering. This playbook therefore treats <strong>candidate generation plus user-specific exclusion</strong> as the central design problem, not an optional personalization extension.</p></div>
+<div class="callout info"><span class="callout-title">The key interview move</span><p>Separate the problem into two stages: build a reusable organization/space Top-K candidate set from engagement events, then overfetch and apply user-specific authored/read exclusions plus current permission checks. Do not create a full ranking per user unless the scale and requirements force it.</p></div>
 
 <h2>Interviewer question</h2>
-<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>“Design a popular-content feed for a platform such as Confluence. Ingest engagement signals, calculate top content and provide fresh updates to users.”</blockquote></div></div>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>Design a YouTube-like homepage for Confluence that shows the most engaged documents across the organization. For the requesting user, do not show documents they authored or documents they have already read. The result must also respect current content permissions.</blockquote></div></div>
 
 <h2>What should I think about first?</h2>
 <div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body"><ol>
-<li>Popularity is a product policy, not a database query: define signals, weights, time decay and scope.</li>
-<li>The write path is high-volume event ingestion; the read path is low-latency Top-K retrieval.</li>
-<li>Ranking can be approximate and eventually consistent, but permission filtering cannot expose restricted pages.</li>
-<li>Duplicate, late and out-of-order events are normal in distributed streams.</li>
-<li>A “real-time feed” should not reorder under the user’s pointer every second.</li>
+<li><strong>Define engaged.</strong> Views, likes, comments, shares, recency, unique users and scope determine the reusable candidate ranking.</li>
+<li><strong>Separate candidates from personalization.</strong> Precompute organization/space Top-K, then exclude authored, already-read and unauthorized documents at read time.</li>
+<li><strong>Model read history for membership queries.</strong> The read path asks whether this user has seen each candidate, not for a full scan of everything the user has read.</li>
+<li><strong>Overfetch deliberately.</strong> Exclusions can remove many candidates, so fetch Top-M to fill a page of N with a bounded scan.</li>
+<li><strong>Keep permissions authoritative.</strong> Ranking and read-history projections may be eventually consistent; access control must not leak restricted pages.</li>
+<li><strong>Protect UX stability.</strong> Fresh rankings should not make the visible list jump continuously.</li>
 </ol></div></div>
 
-<div class="say-this">I’ll first define what popularity means, its scope and freshness. Then I’ll separate durable event ingestion from windowed ranking, materialize Top-K results for fast reads, and design a permission-aware client experience that receives freshness signals without disruptive continuous reordering.</div>
+<div class="say-this">I will first define engagement, scope, freshness and what counts as already read. Then I will build a reusable Top-K candidate pipeline and a separate request-time filtering path for author, read history and permission. I will overfetch with a bounded candidate scan, keep the client snapshot stable, and discuss when the exclusion data can be eventually consistent versus where we must fail closed.</div>
 
 <h2>Clarifying questions</h2>
-<div class="table-wrap"><table><thead><tr><th>Question</th><th>Design impact</th><th>Assumption</th></tr></thead><tbody>
-<tr><td>Is popularity global, tenant, team, space or personalized?</td><td>Aggregation keys and permission exposure.</td><td>Tenant-level with optional space filter; not personalized in v1.</td></tr>
-<tr><td>Which signals count and with what meaning?</td><td>Event schema and scoring policy.</td><td>Unique views, likes, comments and shares with configurable weights.</td></tr>
-<tr><td>What time window and freshness?</td><td>Windowing/state and update channel.</td><td>24-hour and 7-day feeds; under one-minute freshness.</td></tr>
-<tr><td>Are approximate rankings acceptable?</td><td>Exact aggregation versus heavy-hitter algorithms.</td><td>Approximate ordering acceptable within a small error; no duplicate/missing authorization.</td></tr>
-<tr><td>Must hidden/restricted pages be excluded?</td><td>Permission filtering architecture.</td><td>Yes, current access is authoritative.</td></tr>
-<tr><td>Should the list move live while being viewed?</td><td>Frontend reconciliation/UX.</td><td>Show “new results available”; refresh deliberately or at safe intervals.</td></tr>
-<tr><td>How do we count repeated/bot views?</td><td>Deduplication and abuse controls.</td><td>Unique actor/content/session within a short window; risk signals cap suspicious traffic.</td></tr>
-<tr><td>What happens when a page is deleted or made private?</td><td>High-priority invalidation and filtering.</td><td>Remove quickly through lifecycle events and read-time permission check.</td></tr>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Design impact</th><th>Practice assumption</th></tr></thead><tbody>
+<tr><td>Is the candidate ranking organization-wide, tenant, team or space scoped?</td><td>Aggregation key, relevance and permission filtering.</td><td>Tenant/organization Top-K with optional space filter.</td></tr>
+<tr><td>What counts as engaged?</td><td>Event schema and score policy.</td><td>Unique views, likes, comments and shares with configurable weights and recency decay.</td></tr>
+<tr><td>What counts as already read?</td><td>Read-history write path and exclusion freshness.</td><td>A successful page open/view event; a short event lag is acceptable.</td></tr>
+<tr><td>Does authored mean current author/owner or original creator?</td><td>Content metadata and edit/ownership semantics.</td><td>Original creator/author ID stored with the page metadata.</td></tr>
+<tr><td>Must restricted pages be excluded?</td><td>Security boundary.</td><td>Yes; current permission check is authoritative and fails closed.</td></tr>
+<tr><td>How many results and how much overfetch are allowed?</td><td>Latency and bounded fan-out.</td><td>Return 20; fetch candidates in bounded batches up to a configured scan cap.</td></tr>
+<tr><td>What time window and freshness?</td><td>Windowing and serving projection.</td><td>24-hour and 7-day feeds; ranking under one minute stale.</td></tr>
+<tr><td>Should the list move live while being viewed?</td><td>Frontend reconciliation.</td><td>Show a refresh affordance; do not reorder the visible snapshot automatically.</td></tr>
+<tr><td>What happens for a new user or a user who has read nearly everything?</td><td>Cold-start and fallback strategy.</td><td>Relax to space/team recommendations or return a smaller list with fresh content.</td></tr>
 </tbody></table></div>
 
 <h2>Requirements</h2>
@@ -43,7 +46,8 @@
 <li>Accept engagement events from supported products/clients.</li>
 <li>Deduplicate retries and control repeated views.</li>
 <li>Compute ranked content per tenant/space and time window.</li>
-<li>Return permission-safe pages with metadata and stable pagination.</li>
+<li>Return permission-safe pages while excluding content authored or already read by the requesting user.</li>
+<li>Overfetch and scan candidates with a bounded limit to fill the requested page.</li>
 <li>Indicate when fresher rankings are available.</li>
 <li>Remove deleted/inaccessible content promptly.</li>
 <li>Support replay and scoring-model changes.</li>
@@ -54,7 +58,7 @@
 <li>Feed API p95 under 200 ms for cached/materialized ranking.</li>
 <li>Ranking freshness under one minute.</li>
 <li>At-least-once delivery tolerated through idempotent/deduplicated processing.</li>
-<li>Tenant isolation and permission correctness.</li>
+<li>Tenant isolation, permission correctness and user-history privacy.</li>
 <li>Observable lag, event quality, model version and stale-result age.</li>
 </ul>
 
@@ -64,7 +68,8 @@
 <tr><td>Feed reads</td><td>50k/sec peak</td><td>Precomputed Top-K plus cache; no on-read aggregation.</td></tr>
 <tr><td>Tenants</td><td>300k, skewed</td><td>Tenant-aware partitions and isolated hot tenants.</td></tr>
 <tr><td>Freshness</td><td>Under one minute</td><td>Continuous/windowed stream processing or frequent micro-batch.</td></tr>
-<tr><td>Feed size</td><td>Top 100 materialized, 20 shown</td><td>Permission filtering can overfetch candidates to fill 20.</td></tr>
+<tr><td>User-content interactions</td><td>Billions of read markers; highly skewed by active users</td><td>Partition by tenant/user and support batch membership checks for candidate IDs.</td></tr>
+<tr><td>Feed size</td><td>Top 500 materialized, 20 shown</td><td>Author/read/permission filtering requires bounded overfetch.</td></tr>
 </tbody></table></div>
 
 <h2>Popularity model</h2>
@@ -86,10 +91,13 @@ finalScore = rawScore × recencyDecay(age)
 <h3>Step 2: Windowed aggregates</h3>
 <p>A stream processor deduplicates, applies event-time windows and keeps per-tenant/content counters. It handles late events within an allowed watermark and writes durable aggregate checkpoints.</p>
 
-<h3>Step 3: Materialize Top-K</h3>
-<p>Maintain a Top-K snapshot per scope/window/model in Redis sorted sets or a fast key-value store, backed by a durable snapshot/aggregate store for rebuild. The Feed API overfetches candidates, permission-filters them and enriches metadata.</p>
+<h3>Step 3: Materialize reusable Top-K candidates</h3>
+<p>Maintain a larger candidate snapshot per tenant/space/window/model in Redis sorted sets or a fast key-value store, backed by durable aggregates for rebuild. Do not materialize one ranking per user at this stage.</p>
 
-<h3>Step 4: Freshness without a jumping UI</h3>
+<h3>Step 4: Apply user-specific exclusions</h3>
+<p>The Feed API fetches a bounded candidate batch, batch-checks user read membership, removes documents whose author is the requester, batch-authorizes the remainder, and continues to the next candidate batch until it fills the page or reaches the scan cap.</p>
+
+<h3>Step 5: Freshness without a jumping UI</h3>
 <p>Publish a lightweight <code>RankingUpdated(scope, snapshotVersion)</code> event. Connected clients show “New popular content available” and refresh at a safe moment rather than automatically reordering the list under the user.</p>
 
 <h2>High-level architecture</h2>
@@ -112,12 +120,14 @@ flowchart TB
   U[User] --> UI[Popular feed UI]
   UI -->|GET feed| API[Feed API / BFF]
   API --> TOP
-  API --> META[Content metadata service]
+  API --> HIST[(User-content read history)]
+  API --> META[Content metadata / author service]
   API --> PERM[Permission service]
-  API --> CACHE[(Response/metadata cache)]
+  API --> CACHE[(Safe metadata / candidate cache)]
   UPD --> RT[SSE / WebSocket gateway]
   RT --> UI
   META --> SEARCH[(Content/search projection)]
+  WEB -->|page-read event| RAW
 </pre><div class="diagram-note">Raw events and durable aggregates allow replay. Redis is a fast serving layer, not the only copy of ranking state.</div></div>
 
 <h2>Event contract</h2>
@@ -158,29 +168,59 @@ flowchart TB
 </ul>
 
 <h2>Feed read path</h2>
-<div class="diagram-shell"><div class="diagram-title">Permission-aware feed read</div><pre class="mermaid">
+<div class="diagram-shell"><div class="diagram-title">P40 core: Top-K candidate retrieval plus three filters</div><pre class="mermaid">
 sequenceDiagram
   actor U as User
-  participant UI as Feed UI
+  participant UI as Homepage UI
   participant F as Feed API
-  participant T as Top-K Store
+  participant T as Top-K Candidate Store
+  participant H as Read-History Store
+  participant M as Content Metadata
   participant P as Permission Service
-  participant M as Metadata Service
 
-  U->>UI: Open popular feed
-  UI->>F: GET /feed?window=24h&cursor=...
-  F->>T: Get top 60 candidates after score cursor
-  T-->>F: content IDs + scores + snapshotVersion
-  F->>P: Batch authorize candidates
+  U->>UI: Open Confluence homepage
+  UI->>F: GET engaged-content?limit=20&cursor=...
+  F->>T: Get next 60 ranked candidates
+  T-->>F: IDs + scores + snapshotVersion
+  F->>H: Batch membership(userId, candidateIds)
+  H-->>F: Already-read IDs
+  F->>M: Batch fetch author + display metadata
+  M-->>F: Author IDs, titles, timestamps
+  F->>F: Exclude read and authored documents
+  F->>P: Batch authorize remaining IDs
   P-->>F: Allowed IDs
-  F->>M: Batch fetch allowed metadata
-  M-->>F: Titles, excerpts, authors, timestamps
-  F-->>UI: 20 items + cursor + snapshotVersion + asOf
-  UI->>UI: Render stable list
-</pre><div class="diagram-note">Overfetch candidates because permission filtering may remove many. Cap scan work and return a partially filled page rather than unbounded fan-out.</div></div>
+  F-->>UI: Up to 20 items + candidate cursor + snapshotVersion + asOf
+  UI->>UI: Render a stable list
+</pre><div class="diagram-note">If fewer than 20 survive, fetch the next bounded candidate batch. The cursor tracks the candidate snapshot and scan position so filtering does not create duplicates or an unbounded query.</div></div>
+
+<h3>Read-history data model and access pattern</h3>
+<pre><code class="language-sql">CREATE TABLE user_content_interaction (
+  tenant_id        VARCHAR NOT NULL,
+  user_id          VARCHAR NOT NULL,
+  content_id       VARCHAR NOT NULL,
+  first_read_at    TIMESTAMP NOT NULL,
+  last_read_at     TIMESTAMP NOT NULL,
+  read_count       BIGINT NOT NULL,
+  PRIMARY KEY (tenant_id, user_id, content_id)
+);
+
+-- Candidate filtering asks membership for a bounded ID set:
+SELECT content_id
+FROM user_content_interaction
+WHERE tenant_id = :tenantId
+  AND user_id = :userId
+  AND content_id IN (:candidateIds);</code></pre>
+<p>At very large scale this can live in a user-partitioned wide-column/KV store or a compact per-user read projection. The key requirement is efficient candidate membership checks; do not load the user's entire history for every homepage request.</p>
+
+<h3>Why not precompute a full feed per user?</h3>
+<div class="table-wrap"><table><thead><tr><th>Option</th><th>Benefit</th><th>Cost</th></tr></thead><tbody>
+<tr><td>Shared Top-K + read-time filtering</td><td>Reusable ranking, simpler writes, current exclusions.</td><td>Overfetch and batch fan-out on reads.</td></tr>
+<tr><td>Precomputed per-user feed</td><td>Very fast reads.</td><td>Huge write amplification, stale read/author/permission state, expensive invalidation.</td></tr>
+<tr><td>Hybrid candidate + lightweight re-rank</td><td>Good relevance with bounded work.</td><td>More serving logic and user-specific caching complexity.</td></tr>
+</tbody></table></div>
 
 <h2>API design</h2>
-<pre><code class="language-http">GET /v1/popular-content?scope=tenant&window=24h&limit=20&cursor=...
+<pre><code class="language-http">GET /v1/confluence/engaged-content?scope=tenant&window=24h&limit=20&cursor=...
 Authorization: Bearer &lt;token&gt;</code></pre>
 <pre><code class="language-json">{
   "items": [
@@ -193,7 +233,8 @@ Authorization: Bearer &lt;token&gt;</code></pre>
     }
   ],
   "nextCursor": "opaque-score-cursor",
-  "snapshotVersion": "tenant-42:24h:model-3:18420",
+  "candidateSnapshotVersion": "tenant-42:24h:model-3:18420",
+  "filtering": { "authored": true, "alreadyRead": true },
   "asOf": "2026-10-03T09:31:00Z"
 }</code></pre>
 <p>Consider returning a score band rather than the raw score if weights are product policy and exposing them encourages gaming.</p>
@@ -204,7 +245,7 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <li>Keep the loaded snapshot/version stable while the user reads or scrolls.</li>
 <li>Use cursor pagination tied to snapshot/order where possible.</li>
 <li>Virtualize long lists and lazy-load heavy previews/images.</li>
-<li>Cache server state by tenant/scope/window/filter; never cross tenant/user boundaries.</li>
+<li>Cache server state by tenant/user/scope/window/filter; never reuse personalized results across users.</li>
 <li>Show loading skeleton, empty state, partial-degradation and stale <code>asOf</code> state.</li>
 <li>Prefetch next page near the viewport, respecting bandwidth.</li>
 </ul>
@@ -220,8 +261,10 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 
 <div class="callout success"><span class="callout-title">Customer-centred trade-off</span><p>Technical real time does not require visual real time. A stable list with a freshness indicator is usually less disruptive than continuous rank movement.</p></div>
 
-<h2>Permissions and content lifecycle</h2>
+<h2>User exclusions, permissions and content lifecycle</h2>
 <ul>
+<li>Already-read filtering is a recommendation rule, not an authorization rule; define its acceptable staleness separately.</li>
+<li>Authored filtering uses authoritative page creator/author metadata and must define behavior after ownership transfer.</li>
 <li>Ranking candidates are not authorization evidence; batch-check current access before returning metadata.</li>
 <li>Use deletion/permission-change events to remove candidates quickly, but keep read-time authorization as the safety boundary.</li>
 <li>Fail closed when permission verification is unavailable; optionally serve fewer items instead of exposing unverified content.</li>
@@ -244,7 +287,8 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <tr><td>Durable event stream</td><td>Normalized engagement log</td><td>Buffering, replay, multiple consumers and partitioned scale.</td></tr>
 <tr><td>Stateful processor store</td><td>Window counters and dedup state</td><td>Low-latency incremental computation with checkpoints.</td></tr>
 <tr><td>Durable aggregate/snapshot DB</td><td>Recovery, audit/model recompute</td><td>Redis should not be the only copy.</td></tr>
-<tr><td>Redis sorted sets / KV</td><td>Serving Top-K snapshots</td><td>Fast score-ordered reads for small materialized sets.</td></tr>
+<tr><td>Redis sorted sets / KV</td><td>Serving shared Top-K candidate snapshots</td><td>Fast score-ordered reads for bounded candidate sets.</td></tr>
+<tr><td>User-partitioned interaction store</td><td>Already-read membership and timestamps</td><td>Efficient batch membership by tenant/user/candidate IDs.</td></tr>
 <tr><td>Content/search projection</td><td>Metadata candidates/enrichment</td><td>Avoid placing full page data in ranking state.</td></tr>
 </tbody></table></div>
 
@@ -253,6 +297,8 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <tr><td>Event acceptance</td><td>Durable append before acknowledging, or producer outbox if generated by backend service.</td></tr>
 <tr><td>Processing</td><td>At least once with dedup/idempotent aggregate application.</td></tr>
 <tr><td>Ranking</td><td>Eventual, bounded target under one minute; expose <code>asOf</code>.</td></tr>
+<tr><td>Read-history exclusion</td><td>Briefly eventual; a just-read page may appear once more, but the next refresh removes it.</td></tr>
+<tr><td>Authored exclusion</td><td>Metadata-driven; omit a candidate if author metadata cannot be verified.</td></tr>
 <tr><td>Permission</td><td>Current authoritative check at response time.</td></tr>
 <tr><td>Client snapshot</td><td>Stable within a browsing session/page cursor until explicit refresh.</td></tr>
 <tr><td>Delete/revocation</td><td>Prioritized event invalidation plus read-time safety check.</td></tr>
@@ -263,6 +309,7 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <tr><td>Ingestion API unavailable</td><td>Backend producers use outbox/retry; browser telemetry may be best effort.</td><td>Backoff, local buffer with limits, monitor loss.</td></tr>
 <tr><td>Stream processor lag</td><td>Feed serves older snapshot with <code>asOf</code>.</td><td>Autoscale, partition rebalance, degrade non-critical consumers.</td></tr>
 <tr><td>Redis Top-K unavailable</td><td>Serve last durable snapshot or temporary unavailable state.</td><td>Rebuild from durable aggregates; circuit breaker.</td></tr>
+<tr><td>Read-history store slow/down</td><td>Return a smaller stale-personalized result or temporarily omit the module based on product policy; never confuse this with permission safety.</td><td>Timeout, last known user projection, monitor exclusion staleness.</td></tr>
 <tr><td>Permission service slow/down</td><td>Return fewer/no items; never skip authorization.</td><td>Batch calls, short safe cache, timeout, fail closed.</td></tr>
 <tr><td>Metadata service partial failure</td><td>Omit failed items and mark partial result.</td><td>Retry in background; do not block entire feed indefinitely.</td></tr>
 <tr><td>Realtime gateway down</td><td>Feed still works through pull refresh.</td><td>Reconnect/backoff; no correctness impact.</td></tr>
@@ -275,7 +322,8 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <li>Use partial per-partition aggregates, then combine to tenant Top-K; avoid one counter for a viral page.</li>
 <li>Give exceptionally large tenants dedicated partitions/processor capacity.</li>
 <li>Materialize only Top-N plus buffer, not every sorted score in Redis.</li>
-<li>Batch permission/metadata enrichment and cache non-sensitive metadata.</li>
+<li>Batch read-membership, permission and metadata calls; avoid loading a user's full history.</li>
+<li>Partition read history by tenant + user and protect hot/service-account users with pagination or bucketed partitions.</li>
 <li>Separate ranking update notifications from full feed payloads.</li>
 <li>Set quotas and backpressure for noisy producers; monitor per-tenant lag.</li>
 </ol>
@@ -285,10 +333,10 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <li>Event acceptance rate, schema rejection and duplicate ratio by producer.</li>
 <li>End-to-end event-to-ranking freshness and per-stage consumer lag.</li>
 <li>Top-K snapshot age, rebuild duration and model version.</li>
-<li>Feed latency, candidate overfetch ratio and permission-filter rate.</li>
+<li>Feed latency, candidate overfetch ratio, read/authored exclusion rate and permission-filter rate.</li>
 <li>Missing/deleted metadata rate and revocation-removal latency.</li>
 <li>Abuse-signal rate and contribution caps.</li>
-<li>Client refresh acceptance, scroll stability and empty/partial feed rate.</li>
+<li>Percentage of returned pages that were actually unread, user-history lag, client refresh acceptance and empty/partial feed rate.</li>
 </ul>
 
 <h2>Trade-offs</h2>
@@ -296,19 +344,25 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 <tr><td>Precomputed Top-K</td><td>Fast reads at high scale.</td><td>Eventual freshness and pipeline operations.</td></tr>
 <tr><td>Windowed explainable score</td><td>Product control and easy debugging.</td><td>Less personalized/learned relevance.</td></tr>
 <tr><td>Stable client snapshot</td><td>Readable, predictable UX.</td><td>Visible list is not continuously freshest.</td></tr>
+<tr><td>Shared candidates + read-time exclusions</td><td>Avoids per-user ranking write amplification and keeps exclusions current.</td><td>Overfetch, user-history lookup and variable page fill.</td></tr>
 <tr><td>Read-time permission check</td><td>Current access safety.</td><td>Latency and candidate overfetch.</td></tr>
 <tr><td>Approximate heavy hitters</td><td>Lower state at extreme scale.</td><td>Ranking error and harder explanation; use only when needed.</td></tr>
 </tbody></table></div>
 
 <h2>Interviewer follow-ups</h2>
 <section><div class="details-actions" data-details-actions><button data-expand>Expand all</button><button data-collapse>Collapse all</button></div><div class="details-stack">
+<details><summary>How do you filter a user with millions of read documents?</summary><div class="details-content"><p>Do not fetch the full history. Fetch a bounded Top-K candidate batch and perform a batch membership query for only those IDs, keyed by tenant and user. If the candidate survival rate is low, fetch the next batch up to a scan cap or use a compact read projection/Bloom filter as a negative prefilter backed by an exact check where needed.</p></div></details>
+<details><summary>What if nearly every Top-K document has already been read?</summary><div class="details-content"><p>Overfetch in bounded pages, then fall back to a broader candidate source such as recent content from followed spaces, team-level trends or newly published documents. Return fewer items rather than running an unbounded scan, and track candidate survival as a product/operational metric.</p></div></details>
+<details><summary>How do you cache a personalized homepage?</summary><div class="details-content"><p>Cache shared Top-K candidates broadly, but key final results by tenant/user/scope/window and keep the TTL short. Often it is better to cache candidate and metadata layers separately, because every read event invalidating a full user response causes churn.</p></div></details>
+<details><summary>What if the page was just read but the event pipeline is delayed?</summary><div class="details-content"><p>The client can optimistically mark the page read in local/server state and send an idempotent read event. A brief repeat recommendation is acceptable if product agrees; expose a bounded freshness target and reconcile the durable interaction projection asynchronously.</p></div></details>
+<details><summary>How do author changes or page ownership transfers affect exclusion?</summary><div class="details-content"><p>Clarify whether the rule means original creator, current owner or any contributor. Store the chosen field in authoritative metadata and version lifecycle changes. Do not infer authorship from engagement events.</p></div></details>
 <details><summary>How do you compute Top-K without sorting every page?</summary><div class="details-content"><p>Incrementally aggregate scores by content/window and maintain a bounded sorted structure/materialized Top-K per scope. At very high cardinality, combine partition-local candidates or use approximate heavy-hitter algorithms, then exact-score the candidate set.</p></div></details>
 <details><summary>How do you handle duplicate events?</summary><div class="details-content"><p>Every event has an ID. The processor maintains bounded dedup state or writes idempotently against a unique event application key. For popularity increments, blindly replaying is unsafe; deduplicate before updating or recompute from a unique normalized log.</p></div></details>
 <details><summary>What if events arrive out of order or late?</summary><div class="details-content"><p>Use event-time windows and watermarks. Accept normal lateness into the active window, route very late events to correction/recomputation, and version snapshots so old output cannot overwrite newer ranking.</p></div></details>
 <details><summary>How do you prevent one viral page from creating a hot key?</summary><div class="details-content"><p>Aggregate locally across stream partitions/shards and merge partial counts rather than writing every event to one remote counter. Salting can spread writes, with a combiner producing the final score.</p></div></details>
 <details><summary>How do you remove a page immediately after permission revocation?</summary><div class="details-content"><p>Publish high-priority lifecycle/permission events to invalidate materialized candidates and caches, but still batch-authorize at read time. If permission verification is unavailable, fail closed rather than trust stale ranking state.</p></div></details>
 <details><summary>Would you use WebSockets or SSE for feed updates?</summary><div class="details-content"><p>The server only needs to signal a new ranking version, so SSE is sufficient and simpler. If the product already has a shared WebSocket channel for bidirectional collaboration, reuse may win. The payload should be a version/freshness signal, not the whole feed.</p></div></details>
-<details><summary>How would you make the feed personalized?</summary><div class="details-content"><p>Keep tenant popular candidates as a retrieval stage, then re-rank an authorized candidate set using user/team interests, recency and diversity. Cache carefully because results become user-specific. Start with explainable tenant/space feeds unless personalization is required.</p></div></details>
+<details><summary>How would you go beyond authored/read exclusions?</summary><div class="details-content"><p>Keep shared tenant/space candidates as retrieval, then re-rank the allowed unread set using followed spaces, team affinity, topics, recency and diversity. Version the model and protect privacy. The exact P40 requirement can be met without a machine-learning recommender.</p></div></details>
 <details><summary>How do you change scoring weights safely?</summary><div class="details-content"><p>Version the model/configuration, shadow-compute new snapshots from durable aggregates/events, compare quality/operational metrics, canary selected tenants and switch a pointer. Retain the previous snapshot/model for rollback.</p></div></details>
 <details><summary>What if Redis loses all Top-K data?</summary><div class="details-content"><p>Redis is a serving projection. Rebuild from durable aggregate snapshots or replay the event log from a checkpoint. During recovery, serve the last durable snapshot with a stale marker or degrade the widget.</p></div></details>
 <details><summary>How would you paginate a changing ranked feed?</summary><div class="details-content"><p>Tie the cursor to a snapshot version and last score/tie-break ID. Continue within that snapshot for stable results. A newer ranking is offered as a refresh rather than silently mixing orders across pages.</p></div></details>
@@ -317,11 +371,11 @@ Authorization: Bearer &lt;token&gt;</code></pre>
 </div></section>
 
 <h2>90-second final summary</h2>
-<div class="say-this">I defined popularity as a versioned, time-decayed score over deduplicated views, likes, comments and shares within a tenant or space. Producers append compact events to a durable stream. A stateful processor uses event-time windows, watermarks and idempotent application to build durable aggregates and materialize Top-K snapshots in a fast serving store. The Feed API overfetches ranked candidates, batch-authorizes current access, enriches metadata and returns a snapshot-versioned cursor plus an as-of timestamp. Clients keep the visible snapshot stable; SSE/WebSocket only signals that fresher results exist, while deletion or permission revocation removes content immediately. Redis loss or processor lag degrades freshness, not correctness, because durable events/aggregates can rebuild the projection. The main trade-off is fast precomputed reads versus eventual ranking freshness, while permission checks remain authoritative.</div>
+<div class="say-this">I separated shared candidate generation from per-user filtering. Engagement events are deduplicated and aggregated into versioned tenant/space Top-K candidate snapshots. On read, the Feed API overfetches a bounded candidate batch, batch-checks the requesting user's read history, removes documents they authored, batch-authorizes the remainder, enriches metadata and returns a stable snapshot cursor. This avoids the write amplification of precomputing every user feed while keeping the exact P40 exclusions explicit. Ranking and read history can be briefly eventual, but permission checks remain authoritative. The client does not reorder continuously; it receives a freshness signal and refreshes deliberately. The main trade-off is variable read-time filtering cost versus scalable reusable candidate ranking.</div>
 
 <h2>References</h2>
-<div class="reference-list"><div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-senior-software-engineer-rejected" target="_blank" rel="noreferrer">Candidate report: popular-content system</a><p>Public report describing event ingestion, Top-N calculation and real-time updates.</p></div><div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official design-round evaluation themes.</p></div></div>
+<div class="reference-list"><div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer" target="_blank" rel="noreferrer">P40 Bangalore offer report - Confluence engagement homepage</a><p>Directly reports most-engaged organization documents with authored and already-read exclusions, plus schema/filtering discussion.</p></div><div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-senior-software-engineer-rejected" target="_blank" rel="noreferrer">Candidate report - popular-content stream design</a><p>Supports the event-ingestion, Top-N and realtime-update dimensions used as scale follow-ups.</p></div><div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official design-round emphasis on customer, performance, reliability, scale and communication.</p></div></div>
 
 <div class="page-actions"><span>Now practise the common follow-ups without relying on a memorized design.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
-<nav class="page-nav"><a href="jira-board.html"><small>Previous</small><strong>Jira / Trello board</strong></a><a class="next" href="follow-ups.html"><small>Next</small><strong>Follow-up bank →</strong></a></nav>
+<nav class="page-nav"><a href="tagging-system.html"><small>Previous</small><strong>Product-Agnostic Tagging</strong></a><a class="next" href="jira-board.html"><small>Next</small><strong>Jira / Trello board &rarr;</strong></a></nav>
 </article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

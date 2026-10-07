@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="P40-calibrated AI-enabled code design practice for extending an existing Snake Game repository with configurable growth and collision rules.">
+<title>Snake Game - P40 AI Practice - Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<body data-root="../../" data-page="ai-snake" data-title="Snake Game - P40 Practice"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>Snake Game</span></nav>
+<header class="page-header"><div class="page-kicker">P40 LLD drill 2 - Reframed for the current AI repository round</div><h1>Snake Game with configurable Nth-food growth</h1>
+<p class="lead">Work inside an existing TypeScript game-engine repository: preserve the public API, add growth after every Nth food, make collision semantics correct, and keep each move O(1) while directing AI through the TDD cycle.</p>
+<div class="page-meta"><span class="badge verified">Recent direct P40 offer-round LLD</span><span class="meta-pill">TypeScript</span><span class="meta-pill">Stateful object design</span><span class="meta-pill">TDD + edge cases</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout success"><span class="callout-title">Evidence boundary</span><p>A recent direct P40 offer report describes a Snake Game with a <code>nextMove(direction)</code> API, modular board/snake/food state, explicit boundary clarification, and growth after every Nth food. Broader Atlassian/SDE-2 variants discuss closely related collision and growth rules. This page turns that reported LLD into one repository-extension exercise for the current AI-enabled round; it is not claimed to be an exact current prompt.</p></div>
+
+<h2>Interviewer question - AI-enabled version</h2>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>This repository contains a partially implemented Snake Game engine and tests. Extend it so the snake grows only after every Nth food item, where N is configuration. Preserve the existing <code>nextMove(direction)</code> API, follow the repository's boundary policy, end the game on invalid collision, and keep movement efficient. Use the AI assistant, but drive the design and testing yourself.</blockquote></div></div>
+
+<h2>What should I think about first?</h2>
+<div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body"><ol>
+<li><strong>Clarify the growth trigger.</strong> Nth food and Nth move are different requirements. The practice version uses Nth food.</li>
+<li><strong>Clarify board boundaries.</strong> Wall collision and wraparound produce different position logic and tests.</li>
+<li><strong>Model the snake as ordered state plus membership state.</strong> A deque/array tracks head-to-tail order; a set provides O(1) collision checks.</li>
+<li><strong>Handle the old-tail exception correctly.</strong> Moving into the current tail is legal when the tail moves away on a non-growth step.</li>
+<li><strong>Keep food deterministic in tests.</strong> Inject a provider or sequence instead of relying on random generation.</li>
+</ol></div></div>
+
+<div class="say-this">I will confirm whether growth is based on food count or move count, whether boundaries wrap or end the game, and how food is supplied. Then I will inspect the current engine and tests, add the smallest failing test for the Nth-food rule, implement the minimum state transition, and add the tail-collision and boundary edge cases before reviewing the design.</div>
+
+<h2>Clarifying questions</h2>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Why it matters</th><th>Practice assumption</th></tr></thead><tbody>
+<tr><td>Does growth happen after every Nth food or every Nth move?</td><td>Counter and state transition differ.</td><td>Every Nth food; N is positive configuration.</td></tr>
+<tr><td>Does crossing an edge wrap or end the game?</td><td>Position and game-over rules differ.</td><td>Use the repository's policy; practice code supports both.</td></tr>
+<tr><td>Who places food?</td><td>Randomness and testability.</td><td>An injected deterministic <code>FoodProvider</code>.</td></tr>
+<tr><td>Can the player reverse direction immediately?</td><td>Could force an instant collision.</td><td>Preserve existing behavior; do not add a rule without requirement.</td></tr>
+<tr><td>What happens after game over?</td><td>API contract.</td><td>Further moves return the existing game-over result without state mutation.</td></tr>
+<tr><td>Can food appear on the snake?</td><td>Food generator contract.</td><td>No; provider must choose an unoccupied cell.</td></tr>
+<tr><td>How is initial position supplied?</td><td>Constructor and board validation.</td><td>Existing repository provides an ordered body of length three.</td></tr>
+<tr><td>What should <code>nextMove</code> return?</td><td>Compatibility with existing caller/UI.</td><td>Preserve current result type; sample returns status, head and length.</td></tr>
+</tbody></table></div>
+
+<h2>What a P40 interviewer is likely testing</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Clean state model</h3><p>Can you represent head/tail order, occupancy, food and game status without mixed responsibilities?</p><div class="interview-cue"><strong>Show it:</strong> ordered body + occupancy set + injected policy/provider.</div></div>
+<div class="concept-card"><h3>Correct transition order</h3><p>Can you reason about remove-tail, collision, add-head and growth sequencing?</p><div class="interview-cue"><strong>Show it:</strong> test moving into the old tail on a non-growth move.</div></div>
+<div class="concept-card"><h3>Extensibility without over-design</h3><p>Can you support a boundary policy or food provider without building a game framework?</p><div class="interview-cue"><strong>Show it:</strong> add only seams required by the requirement/testability.</div></div>
+<div class="concept-card"><h3>Complexity</h3><p>Can every move avoid scanning the whole snake or board?</p><div class="interview-cue"><strong>Show it:</strong> O(1) deque operations and set membership.</div></div>
+<div class="concept-card"><h3>TDD edge selection</h3><p>Can your tests expose the hard bugs rather than only happy movement?</p><div class="interview-cue"><strong>Show it:</strong> Nth growth, tail exception, self collision, boundary, post-game move.</div></div>
+<div class="concept-card"><h3>AI discipline</h3><p>Can you stop an agent from rewriting the engine or changing the public API?</p><div class="interview-cue"><strong>Show it:</strong> file-bounded prompts and diff review after each state change.</div></div>
+</div>
+
+<h2>Repository discovery before editing</h2>
+<div class="prompt-card"><h4>P40 discovery prompt</h4><div class="prompt-text">Do not edit code. Trace the current Snake Game state transition from nextMove(direction) through position calculation, boundary handling, collision detection, body update and food consumption. Identify the public API, data structures, current complexity, test framework and all assumptions encoded in tests. Find whether food and boundary behavior are injectable or hard-coded. Report exact files/symbols and propose the smallest seam needed for deterministic Nth-food tests.</div></div>
+
+<div class="diagram-shell"><div class="diagram-title">One move as an explicit state machine</div><pre class="mermaid">
+flowchart LR
+  D[Direction] --> P[Compute candidate head]
+  P --> B{Boundary policy}
+  B -->|invalid| G[Mark game over]
+  B -->|valid position| F{Candidate is food?}
+  F --> C[Compute whether this food triggers growth]
+  C --> T{Will tail move?}
+  T -->|yes| R[Remove tail from body and occupied set]
+  T -->|no| K[Keep tail]
+  R --> X{Candidate occupied?}
+  K --> X
+  X -->|yes| G
+  X -->|no| H[Add candidate as new head]
+  H --> E[Advance food if consumed]
+  E --> O[Return move result]
+</pre><div class="diagram-note">Collision is checked after removing the tail on a non-growth move, otherwise entering the old tail cell is incorrectly rejected.</div></div>
+
+<h2>Acceptance criteria</h2>
+<ul class="checklist">
+<li>The existing <code>nextMove(direction)</code> contract and existing movement behavior remain compatible.</li>
+<li>Eating food increments the food counter; length grows only when the new count is divisible by <code>growthEvery</code>.</li>
+<li>On a non-growth move, the tail is removed before occupancy collision is evaluated.</li>
+<li>Self-collision ends the game and does not partially mutate the body.</li>
+<li>Boundary behavior follows explicit repository configuration: wrap or wall.</li>
+<li>Food progression is deterministic in tests and never places food on an occupied cell.</li>
+<li>Each move is O(1) except any explicitly separate food-generation search.</li>
+<li>Focused and regression tests pass; no unrelated rendering/UI rewrite is included.</li>
+</ul>
+
+<h2>Compare approaches</h2>
+<div class="table-wrap"><table><thead><tr><th>Approach</th><th>Strength</th><th>Weakness</th><th>Decision</th></tr></thead><tbody>
+<tr><td>2D board array is the complete source of truth</td><td>Easy to visualize.</td><td>Movement/collision often scans or duplicates body order; board size memory.</td><td>Useful for rendering, not ideal as the only engine state.</td></tr>
+<tr><td>Deque/array body only</td><td>Simple ordered movement.</td><td>Self-collision is O(length) if searched each move.</td><td>Insufficient for required O(1) collision.</td></tr>
+<tr><td>Ordered body + occupied set</td><td>O(1) head/tail updates and membership.</td><td>Two structures must stay consistent.</td><td>Best fit; protect with focused invariants/tests.</td></tr>
+<tr><td>General entity/component game framework</td><td>Highly extensible.</td><td>Large diff and hard to defend in a 60-minute repository task.</td><td>Reject unless the repository already uses it.</td></tr>
+</tbody></table></div>
+
+<h2>TDD sequence</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">BASELINE</div><h3>Preserve existing movement</h3><p>Run current tests and capture current boundary, initial body and return semantics.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 1</div><h3>First food does not grow when N = 2</h3><p>Supply food directly in front of the head and assert length remains unchanged.</p></div>
+<div class="timeline-item"><div class="timeline-time">GREEN 1</div><h3>Add food counter and configuration</h3><p>Implement only the smallest counter/growth decision and keep public API stable.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 2</div><h3>Second food grows</h3><p>Advance deterministic food and assert length increases exactly once.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 3</div><h3>Old-tail cell is legal when not growing</h3><p>Create a shape where the next head equals the current tail; assert the move succeeds if the tail moves.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 4</div><h3>Real self collision and boundary</h3><p>Assert collision and wall/wrap behavior separately.</p></div>
+<div class="timeline-item"><div class="timeline-time">REFACTOR</div><h3>Extract only justified policies</h3><p>Keep position/boundary and food deterministic, then run all game-engine tests.</p></div>
+</div>
+
+<h2>Representative TypeScript design</h2>
+<pre><code class="language-javascript">export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+export type BoundaryMode = 'WRAP' | 'WALL';
+
+export interface Position {
+  readonly row: number;
+  readonly col: number;
+}
+
+export interface FoodProvider {
+  current(): Position | null;
+  consume(): void;
+}
+
+export interface MoveResult {
+  readonly gameOver: boolean;
+  readonly ateFood: boolean;
+  readonly grew: boolean;
+  readonly head: Position;
+  readonly length: number;
+}
+
+const keyOf = ({ row, col }: Position): string =&gt; `${row}:${col}`;
+
+export class SnakeGame {
+  private readonly body: Position[];
+  private readonly occupied: Set&lt;string&gt;;
+  private foodsEaten = 0;
+  private gameOver = false;
+
+  constructor(
+    private readonly boardSize: number,
+    initialBody: Position[], // tail -&gt; head
+    private readonly growthEvery: number,
+    private readonly boundaryMode: BoundaryMode,
+    private readonly food: FoodProvider,
+  ) {
+    if (boardSize &lt;= 0 || growthEvery &lt;= 0 || initialBody.length === 0) {
+      throw new Error('Invalid game configuration');
+    }
+
+    this.body = [...initialBody];
+    this.occupied = new Set(initialBody.map(keyOf));
+
+    if (this.occupied.size !== initialBody.length) {
+      throw new Error('Initial snake contains duplicate positions');
+    }
+  }
+
+  nextMove(direction: Direction): MoveResult {
+    if (this.gameOver) {
+      return this.result(false, false);
+    }
+
+    const candidate = this.moveFrom(this.head(), direction);
+    const bounded = this.applyBoundary(candidate);
+    if (bounded === null) {
+      this.gameOver = true;
+      return this.result(false, false);
+    }
+
+    const currentFood = this.food.current();
+    const ateFood = currentFood !== null &amp;&amp; keyOf(currentFood) === keyOf(bounded);
+    const nextFoodCount = this.foodsEaten + (ateFood ? 1 : 0);
+    const grew = ateFood &amp;&amp; nextFoodCount % this.growthEvery === 0;
+
+    // On a normal move the tail leaves first. This makes moving into the
+    // old tail position legal when the snake is not growing.
+    if (!grew) {
+      const tail = this.body.shift();
+      if (tail) this.occupied.delete(keyOf(tail));
+    }
+
+    if (this.occupied.has(keyOf(bounded))) {
+      this.gameOver = true;
+      return this.result(ateFood, false);
+    }
+
+    this.body.push(bounded);
+    this.occupied.add(keyOf(bounded));
+
+    if (ateFood) {
+      this.foodsEaten = nextFoodCount;
+      this.food.consume();
+    }
+
+    return this.result(ateFood, grew);
+  }
+
+  private head(): Position {
+    return this.body[this.body.length - 1];
+  }
+
+  private moveFrom(position: Position, direction: Direction): Position {
+    const delta = {
+      UP: [-1, 0], DOWN: [1, 0], LEFT: [0, -1], RIGHT: [0, 1],
+    } as const;
+    const [rowDelta, colDelta] = delta[direction];
+    return { row: position.row + rowDelta, col: position.col + colDelta };
+  }
+
+  private applyBoundary(position: Position): Position | null {
+    const inside = position.row &gt;= 0 &amp;&amp; position.row &lt; this.boardSize
+      &amp;&amp; position.col &gt;= 0 &amp;&amp; position.col &lt; this.boardSize;
+    if (inside) return position;
+    if (this.boundaryMode === 'WALL') return null;
+    return {
+      row: (position.row + this.boardSize) % this.boardSize,
+      col: (position.col + this.boardSize) % this.boardSize,
+    };
+  }
+
+  private result(ateFood: boolean, grew: boolean): MoveResult {
+    return {
+      gameOver: this.gameOver,
+      ateFood,
+      grew,
+      head: this.head(),
+      length: this.body.length,
+    };
+  }
+}</code></pre>
+
+<div class="callout warning"><span class="callout-title">Mutation safety detail</span><p>The sample removes the tail before checking collision. If collision then occurs, the state is partially changed. A production-quality implementation should either pre-compute whether the candidate is legal using the old-tail exception, or stage the mutation and commit only after validation. This is exactly the kind of issue you should notice in the diff rather than blindly accept AI-generated code.</p></div>
+
+<h3>Safer collision decision</h3>
+<pre><code class="language-javascript">const tail = this.body[0];
+const mayEnterOldTail = !grew &amp;&amp; keyOf(tail) === keyOf(bounded);
+const collides = this.occupied.has(keyOf(bounded)) &amp;&amp; !mayEnterOldTail;
+
+if (collides) {
+  this.gameOver = true;
+  return this.result(ateFood, false);
+}
+
+if (!grew) {
+  const removed = this.body.shift();
+  if (removed) this.occupied.delete(keyOf(removed));
+}
+
+this.body.push(bounded);
+this.occupied.add(keyOf(bounded));</code></pre>
+<p>Use this staged form in the final implementation so an invalid move does not corrupt the body.</p>
+
+<h2>Focused Vitest tests</h2>
+<pre><code class="language-javascript">import { describe, expect, it } from 'vitest';
+import { QueueFoodProvider } from './QueueFoodProvider';
+import { SnakeGame } from './SnakeGame';
+
+describe('SnakeGame Nth-food growth', () =&gt; {
+  it('does not grow on the first food when growthEvery is 2', () =&gt; {
+    const food = new QueueFoodProvider([{ row: 1, col: 3 }]);
+    const game = new SnakeGame(
+      6,
+      [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }],
+      2,
+      'WALL',
+      food,
+    );
+
+    const result = game.nextMove('RIGHT');
+
+    expect(result).toMatchObject({ ateFood: true, grew: false, length: 3 });
+  });
+
+  it('grows exactly on the second food', () =&gt; {
+    const food = new QueueFoodProvider([
+      { row: 1, col: 3 },
+      { row: 1, col: 4 },
+    ]);
+    const game = new SnakeGame(
+      6,
+      [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }],
+      2,
+      'WALL',
+      food,
+    );
+
+    game.nextMove('RIGHT');
+    const second = game.nextMove('RIGHT');
+
+    expect(second).toMatchObject({ ateFood: true, grew: true, length: 4 });
+  });
+
+  it('allows entering the old tail cell when the tail moves', () =&gt; {
+    const game = gameWithBody([
+      { row: 1, col: 1 }, // tail
+      { row: 2, col: 1 },
+      { row: 2, col: 2 },
+      { row: 1, col: 2 }, // head
+    ]);
+
+    const result = game.nextMove('LEFT');
+
+    expect(result.gameOver).toBe(false);
+    expect(result.head).toEqual({ row: 1, col: 1 });
+  });
+});</code></pre>
+
+<h2>AI prompts for this question</h2>
+<div class="prompt-card"><h4>RED - Nth-food behavior</h4><div class="prompt-text">Do not modify production code. Find the current Snake Game tests and food setup. Add the smallest deterministic failing test proving that with growthEvery = 2, eating the first food does not increase length. Follow the current public API and fixtures. Run only that test, show the exact failure and stop.</div></div>
+<div class="prompt-card"><h4>GREEN - minimum growth implementation</h4><div class="prompt-text">Implement only the minimum state needed to make the focused Nth-food test pass. Preserve nextMove(direction), existing boundary behavior and current result semantics. Do not refactor rendering or introduce a general game framework. Show the diff and run the focused test.</div></div>
+<div class="prompt-card"><h4>Edge-case test - old tail</h4><div class="prompt-text">Before changing code, add a focused test where the next head position equals the current tail and the move does not grow. Explain why that move should be legal. Run it. If it fails, identify whether collision is checked before tail removal and propose the smallest safe correction without partially mutating state.</div></div>
+<div class="prompt-card"><h4>Complexity review</h4><div class="prompt-text">Review the current nextMove implementation. State the time complexity of position calculation, boundary handling, tail update and collision detection. Flag any array scan, board scan or accidental O(length) operation. Recommend changes only if they preserve the repository API and are needed for O(1) moves.</div></div>
+<div class="prompt-card"><h4>Final P40 diff review</h4><div class="prompt-text">Act as a P40 code-design interviewer. Review the diff for state corruption, off-by-one growth, old-tail collision, boundary semantics, invalid configuration, game-over idempotence, food testability, public API changes, test quality and unnecessary abstraction. Cite concrete files/symbols and do not edit.</div></div>
+
+<h2>Likely P40 follow-ups</h2>
+<section class="details-group"><div data-details-actions><button class="mini-button" data-expand type="button">Expand all</button><button class="mini-button" data-collapse type="button">Collapse all</button></div>
+<details><summary>Why use both a deque/array and a set?</summary><p>The ordered collection identifies head and tail and supports O(1) end updates. The set provides O(1) occupancy checks. The invariant is that both contain exactly the same positions; tests and encapsulation protect that duplication.</p></details>
+<details><summary>How would you generate random food efficiently?</summary><p>For a small board, sample cells until one is free. At high occupancy that degrades. A free-cell set plus index mapping supports random O(1) selection/update but adds state complexity. Keep food generation behind an interface so the engine is testable.</p></details>
+<details><summary>What if boundary behavior changes at runtime?</summary><p>Represent boundary handling as a policy, but only if the requirement needs runtime switching. Otherwise an immutable constructor configuration is simpler and safer.</p></details>
+<details><summary>How would you support pause, replay or undo?</summary><p>Record accepted commands and deterministic food sequence, or emit immutable move events. Replay from an initial seed/state. Undo requires snapshots or reversible events and is a separate product requirement.</p></details>
+<details><summary>How would React use this engine?</summary><p>Keep the engine UI-independent. A hook/controller owns the timer and dispatches directions, then maps immutable move results/body snapshots to rendering. Do not let DOM state become the game source of truth.</p></details>
+<details><summary>What if the snake fills the board?</summary><p>The food provider must detect no free cell and return a win/completed state instead of looping forever. Clarify whether full-board completion is required.</p></details>
+<details><summary>How would you make it multiplayer?</summary><p>That changes the consistency model: one authoritative server tick, ordered commands, simultaneous collision resolution and client prediction/reconciliation. Do not force multiplayer abstractions into the single-player exercise.</p></details>
+</section>
+
+<h2>Common mistakes</h2>
+<ul class="checklist warn">
+<li>Assuming wraparound or wall collision without asking.</li>
+<li>Confusing every Nth food with every Nth move.</li>
+<li>Checking occupancy before accounting for the old tail leaving.</li>
+<li>Mutating the body before proving the candidate move is valid.</li>
+<li>Using random food directly in unit tests.</li>
+<li>Scanning the whole snake on each move when O(1) membership is expected.</li>
+<li>Letting AI rename the public API or rewrite the UI unnecessarily.</li>
+</ul>
+
+<h2>Two-minute closing summary</h2>
+<div class="say-this">I preserved the existing nextMove API and added the Nth-food rule through a focused TDD sequence. The engine keeps ordered body state plus an occupancy set so movement and collision remain O(1). Growth is based on consumed-food count, boundary behavior is explicit, and collision is evaluated with the old-tail exception before committing state. Food is injected for deterministic tests. I ran the game-engine regression suite and reviewed the diff for state corruption and unnecessary abstractions.</div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer" target="_blank" rel="noreferrer">P40 Bangalore offer report - Nth-food Snake Game</a><p>Reports <code>nextMove</code>, internal board/snake/food state and modularity/extensibility focus.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-india-offer-1" target="_blank" rel="noreferrer">P40 India offer report - Nokia Snake Game</a><p>Reports boundary clarifications and clean modular working code.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-2-may-2025-3-yoe" target="_blank" rel="noreferrer">SDE-2 report - Snake Game implementation details</a><p>Reports initial size, move API, periodic growth and O(1) deque/set approach.</p></div>
+</div>
+
+<div class="page-actions"><span>Practice objective: prove state transitions, not just draw classes.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="api-rate-limiter.html"><small>Previous</small><strong>API Rate Limiter</strong></a><a class="next" href="prompts.html"><small>Next</small><strong>AI prompts -&gt;</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>

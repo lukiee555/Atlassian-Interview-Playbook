@@ -1,15 +1,17 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Atlassian full-stack system design interview framework and question map."><title>Full-Stack System Design · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
 <body data-root="../../" data-page="system-overview" data-title="Full-Stack System Design Overview"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><span>Full-Stack System Design</span></nav>
 <header class="page-header"><div class="page-kicker">Round 2 · End-to-end architecture</div><h1>Full-Stack Based System Design</h1><p class="lead">Design a user experience and the system that makes it reliable: browser state, APIs, permissions, services, data, events, real-time behaviour, failures, scale and trade-offs.</p>
-<div class="page-meta"><span class="badge verified">60-minute official system-design format</span><span class="meta-pill">Frontend + backend</span><span class="meta-pill">Interactive discussion</span></div></header>
+<div class="page-meta"><span class="badge verified">60-minute official system-design format</span><span class="badge high">P40 calibrated</span><span class="meta-pill">Frontend + backend</span><span class="meta-pill">Interactive discussion</span></div></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
 <div class="callout info"><span class="callout-title">About the round title</span><p>Atlassian’s public guide describes a 60-minute system-design discussion, while candidate reports for full-stack roles also probe browser-to-database flows, authentication, frontend state and real-time behaviour. Because your recruiter called this “Full Stack Based System Design,” this playbook prepares for the combined signal. The exact balance can vary by interviewer.</p></div>
+
+<div class="callout success"><span class="callout-title">P40 research conclusion</span><p>The current detailed set remains valid, but the priority is now calibrated to public P40 reports: <strong>product-agnostic tagging</strong> is the clearest repeated P40 HLD; <strong>Confluence most-engaged content</strong> is an exact P40 offer-round variant with per-user exclusions; and the <strong>Jira/Trello board</strong> remains the strongest role-specific full-stack transfer question. For P40, drive APIs, schema, indexes, practical technology choices, concurrency and one or two failure modes without forcing staff-level multi-region complexity into every answer.</p></div>
 
 <h2>The answer framework</h2>
 <div class="interview-flow">
@@ -77,12 +79,22 @@ flowchart LR
 <tr><td>“Large lists render smoothly.”</td><td>Page/chunk API, virtualization-friendly stable IDs and bounded payloads.</td></tr>
 </tbody></table></div>
 
-<h2>Highest-priority playbooks</h2>
+<h2>Highest-priority P40 playbooks</h2>
 <div class="card-grid">
-<article class="card"><div class="card-number">Priority 1 · Repeatedly reported</div><h3>Product-agnostic tagging</h3><p>Shared tags across Jira issues, Confluence pages and Bitbucket pull requests, with content lookup and popular tags.</p><a class="card-link" href="tagging-system.html">Open complete playbook →</a></article>
-<article class="card"><div class="card-number">Priority 2 · Full-stack reported</div><h3>Jira / Trello board</h3><p>Drag-and-drop ordering, optimistic updates, workflow rules, permissions and concurrent collaborators.</p><a class="card-link" href="jira-board.html">Open complete playbook →</a></article>
-<article class="card"><div class="card-number">Priority 3 · Recent reported prompt</div><h3>Confluence popular feed</h3><p>Ingest views/likes/shares, compute rolling Top-K, filter permissions and deliver stable real-time UI updates.</p><a class="card-link" href="popular-feed.html">Open complete playbook →</a></article>
+<article class="card"><div class="card-number">Priority 1 - Repeated P40 HLD</div><h3>Product-agnostic tagging</h3><p>Shared tags across Jira, Confluence and Bitbucket, with API/schema depth, popular tags, permissions and technology trade-offs.</p><a class="card-link" href="tagging-system.html">Open complete playbook →</a></article>
+<article class="card"><div class="card-number">Priority 2 - Exact P40 offer variant</div><h3>Confluence engagement homepage</h3><p>Rank the most-engaged documents, then exclude pages authored or already read by the requesting user while preserving permission correctness.</p><a class="card-link" href="popular-feed.html">Open P40 playbook →</a></article>
+<article class="card"><div class="card-number">Priority 3 - Full-stack role transfer</div><h3>Jira / Trello board</h3><p>Drag-and-drop ordering, optimistic updates, workflow rules, permissions and concurrent collaborators at P40 depth.</p><a class="card-link" href="jira-board.html">Open complete playbook →</a></article>
 </div>
+
+<h2>P40 target depth</h2>
+<div class="table-wrap"><table><thead><tr><th>Strong P40 signal</th><th>What to demonstrate</th><th>What to avoid</th></tr></thead><tbody>
+<tr><td>Scope and structure</td><td>Clarify users and core workflows, then drive a coherent simple design.</td><td>Waiting for the interviewer to choose every component.</td></tr>
+<tr><td>API and data model</td><td>Concrete endpoints, request/response shape, tables/keys and indexes tied to access patterns.</td><td>One box labelled backend or naming databases without a schema reason.</td></tr>
+<tr><td>Practical technology choices</td><td>Explain REST vs GraphQL, Postgres vs Cassandra/DynamoDB, Kafka vs SQS/RabbitMQ in the context of the prompt.</td><td>Generic claims such as NoSQL scales or Kafka is real time.</td></tr>
+<tr><td>Full-stack connection</td><td>Show how optimistic UI, pagination, real-time updates and error states create backend obligations.</td><td>Designing only services and databases for a Full-Stack role.</td></tr>
+<tr><td>Reliability</td><td>Cover retries, duplicates, permission changes, one hot-key or database failure scenario.</td><td>Adding active-active multi-region, five queues and CRDTs before the basic workflow is correct.</td></tr>
+<tr><td>Communication</td><td>Make assumptions explicit and connect one design choice to your production experience.</td><td>Reciting a memorized architecture without customer or operational reasoning.</td></tr>
+</tbody></table></div>
 
 <h2>The design canvas</h2>
 <div class="table-wrap"><table><thead><tr><th>Section</th><th>Questions to answer</th></tr></thead><tbody>
@@ -117,6 +129,7 @@ flowchart LR
 
 <h2>References</h2>
 <div class="reference-list">
+<div class="reference-item"><a href="https://leetcode.com/discuss/post/7070747/atlassian-p40-india-offer-by-anonymous_u-6mbf/" target="_blank" rel="noreferrer">LeetCode: P40 India offer</a><p>Direct P40 report of the Product-Agnostic Tagging Management Service and the API, schema, database and messaging areas discussed.</p></div>
 <div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official 60-minute system-design description and evaluation themes.</p></div>
 <div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">Candidate report: product-agnostic tagging system</a><p>Publicly reported question shape covering tags across Jira, Confluence and Bitbucket.</p></div>
 <div class="reference-item"><a href="https://medium.com/@nitesh14028/atlassian-interview-experience-oct-25-to-feb-26-cd0c75481739" target="_blank" rel="noreferrer">Candidate report: frontend-heavy full-stack topics</a><p>Real-time chat, request lifecycle, authentication and frontend resilience themes.</p></div>

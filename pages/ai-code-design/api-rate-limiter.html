@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="P40-calibrated AI-enabled code design practice for adding a testable per-customer API rate limiter to an existing service repository.">
+<title>API Rate Limiter - P40 AI Practice - Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<body data-root="../../" data-page="ai-rate-limiter" data-title="API Rate Limiter - P40 Practice"><div id="reading-progress"></div><div id="site-header"></div>
+<div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
+<nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>API Rate Limiter</span></nav>
+<header class="page-header"><div class="page-kicker">P40 LLD drill 3 - Most recent P40 code-quality signal</div><h1>Per-customer API rate limiter</h1>
+<p class="lead">Extend an existing API service using TDD: enforce a configurable request limit, make time deterministic, keep concurrent updates correct inside one process, return an explicit retry decision, and explain how the design evolves to a distributed gateway.</p>
+<div class="page-meta"><span class="badge high">Q3 2026 P40 candidate report</span><span class="meta-pill">Java / Spring Boot</span><span class="meta-pill">Clock + concurrency</span><span class="meta-pill">TDD feature extension</span></div></header>
+<div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
+
+<div class="callout success"><span class="callout-title">Evidence boundary</span><p>A current editorial synthesis of a Q3 2026 P40 candidate report describes an API rate limiter as the code-structure and code-quality exercise. Older Atlassian reports also treat rate limiting as a recurring Code Design family. This page translates that LLD into the current AI-enabled repository format. The exact repository, algorithm and endpoints are not publicly disclosed, so they are practice assumptions rather than claimed interview facts.</p></div>
+
+<h2>Interviewer question - AI-enabled version</h2>
+<div class="interview-block interviewer"><div class="interview-label">Interviewer</div><div class="interview-body"><blockquote>This Spring Boot repository has a permissive request filter and an unused <code>RateLimiter</code> interface. Extend it so each customer may make at most N requests to an endpoint during a configured window. The implementation must be deterministic in tests, safe under concurrent calls in one process, and expose enough information for a 429 response. Start with the simplest algorithm that satisfies the stated requirement and discuss distributed evolution separately.</blockquote></div></div>
+
+<h2>What should I think about first?</h2>
+<div class="interview-block think"><div class="interview-label">Think</div><div class="interview-body"><ol>
+<li><strong>Clarify the key.</strong> Customer, API key, IP, tenant, endpoint, HTTP method, or a composite key?</li>
+<li><strong>Clarify burst semantics.</strong> A fixed window is easy but allows a boundary burst. Token bucket and sliding window solve different product needs.</li>
+<li><strong>Inject time.</strong> Tests must not sleep or depend on the wall clock.</li>
+<li><strong>Make check-and-increment atomic.</strong> A thread-safe map alone is insufficient if read and update are separate operations.</li>
+<li><strong>Separate LLD from distributed HLD.</strong> First make the repository behavior correct. Redis, Lua, failover and multi-region are follow-ups unless required.</li>
+</ol></div></div>
+
+<div class="say-this">I will confirm the limit key, algorithm semantics, response contract and failure behavior. Then I will locate the existing filter and tests, capture allow, reject and reset behavior with an injected clock, implement the minimum atomic in-process limiter, and only after that explain how I would move the state to an atomic distributed store.</div>
+
+<h2>Clarifying questions</h2>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Why it matters</th><th>Practice assumption</th></tr></thead><tbody>
+<tr><td>What identity is limited?</td><td>Key cardinality, fairness and spoofing risk.</td><td>Authenticated tenant + customer + endpoint.</td></tr>
+<tr><td>What does N per window mean?</td><td>Algorithm and boundary behavior.</td><td>Fixed window for the first version.</td></tr>
+<tr><td>Are short bursts allowed?</td><td>May favor token bucket.</td><td>No special burst requirement initially.</td></tr>
+<tr><td>What should a rejected request return?</td><td>API/filter contract.</td><td>HTTP 429 plus <code>Retry-After</code> and remaining quota metadata.</td></tr>
+<tr><td>Does a failed downstream request consume quota?</td><td>Where the limiter runs and accounting semantics.</td><td>Yes, because it consumes protected capacity once admitted.</td></tr>
+<tr><td>Must limits change at runtime?</td><td>Policy lookup and cache invalidation.</td><td>Configuration is supplied to the limiter; dynamic policy is a follow-up.</td></tr>
+<tr><td>What if limiter state is unavailable?</td><td>Fail-open versus fail-closed.</td><td>Not relevant for in-memory v1; explicitly decide in distributed follow-up.</td></tr>
+<tr><td>Is the limit global across instances?</td><td>In-memory versus shared atomic store.</td><td>Single-process acceptance criterion first; global enforcement is a follow-up.</td></tr>
+</tbody></table></div>
+
+<h2>What a P40 interviewer is likely testing</h2>
+<div class="concept-grid">
+<div class="concept-card"><h3>Scope control</h3><p>Can you implement the stated limiter without jumping directly to a global Redis architecture?</p><div class="interview-cue"><strong>Show it:</strong> label in-process guarantees and distributed follow-ups.</div></div>
+<div class="concept-card"><h3>Time testability</h3><p>Can you avoid sleeps and flaky boundary tests?</p><div class="interview-cue"><strong>Show it:</strong> inject <code>Clock</code> or a time provider.</div></div>
+<div class="concept-card"><h3>Atomic state transition</h3><p>Can two simultaneous calls avoid both seeing the same remaining count?</p><div class="interview-cue"><strong>Show it:</strong> per-key atomic <code>compute</code> or equivalent.</div></div>
+<div class="concept-card"><h3>Algorithm judgment</h3><p>Can you explain fixed-window boundary bursts and when token bucket is better?</p><div class="interview-cue"><strong>Show it:</strong> choose from requirements, not fashion.</div></div>
+<div class="concept-card"><h3>API integration</h3><p>Can the filter return consistent status, headers and retry timing?</p><div class="interview-cue"><strong>Show it:</strong> decision object, not a bare boolean.</div></div>
+<div class="concept-card"><h3>AI verification</h3><p>Can you catch generated code that uses wall time, non-atomic increments or unbounded keys?</p><div class="interview-cue"><strong>Show it:</strong> targeted concurrency and eviction review.</div></div>
+</div>
+
+<h2>Repository discovery before editing</h2>
+<div class="prompt-card"><h4>P40 discovery prompt</h4><div class="prompt-text">Do not edit. Trace the incoming request from authentication through the current filter/interceptor to the controller. Find the RateLimiter abstraction, configuration model, error/response conventions, request identity, endpoint key and closest filter tests. Identify every direct call to Instant.now/currentTimeMillis and whether a Clock abstraction already exists. State the focused test command and the smallest insertion point that avoids duplicating authentication or endpoint parsing.</div></div>
+
+<div class="diagram-shell"><div class="diagram-title">In-process v1 and distributed evolution</div><pre class="mermaid">
+flowchart LR
+  R[Authenticated request] --> K[Build tenant + customer + endpoint key]
+  K --> L[RateLimiter.allow]
+  L --> D{Allowed?}
+  D -->|yes| C[Continue filter chain]
+  D -->|no| X[429 + Retry-After]
+  L --> M[(Atomic in-memory state v1)]
+  M -. scale follow-up .-> S[(Redis atomic script)]
+  S -. global policy .-> P[Policy/config cache]
+</pre><div class="diagram-note">The interview implementation can stay in-process if that is the stated scope. Name the guarantee honestly and describe, rather than prematurely build, the distributed version.</div></div>
+
+<h2>Acceptance criteria</h2>
+<ul class="checklist">
+<li>The first N requests for the same key in one window are allowed; request N+1 is rejected.</li>
+<li>Requests for different customers or endpoints use independent counters.</li>
+<li>At the next window boundary, the counter resets deterministically.</li>
+<li>A decision includes allowed/rejected, remaining quota and retry-after information.</li>
+<li>Concurrent calls for one key cannot admit more than N requests inside one JVM.</li>
+<li>Tests use an injected/fake clock and never sleep.</li>
+<li>Configuration rejects non-positive limit/window values.</li>
+<li>Limiter integration follows existing authentication, response and logging conventions.</li>
+<li>The implementation states its single-process scope and does not pretend to enforce a fleet-wide limit.</li>
+</ul>
+
+<h2>TDD plan: build the invariant progressively</h2>
+<div class="timeline">
+<div class="timeline-item"><div class="timeline-time">Baseline</div><h3>Trace filter behavior</h3><p>Run existing endpoint/filter tests and record current pass-through behavior.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 1</div><h3>Allow then reject</h3><p>With limit 2, require two allowed decisions and one rejected decision for the same key.</p></div>
+<div class="timeline-item"><div class="timeline-time">GREEN 1</div><h3>Fixed-window state</h3><p>Implement the minimum state and return a decision object.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 2</div><h3>Window reset</h3><p>Advance a fake clock to the next boundary; require the next request to be allowed.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 3</div><h3>Isolation</h3><p>Prove separate customers/endpoints do not consume one another's quota.</p></div>
+<div class="timeline-item"><div class="timeline-time">RED 4</div><h3>Concurrency</h3><p>Launch many calls for one key and assert exactly N are admitted.</p></div>
+<div class="timeline-item"><div class="timeline-time">Integration</div><h3>429 contract</h3><p>Verify status, retry header, remaining count and no downstream invocation on reject.</p></div>
+<div class="timeline-item"><div class="timeline-time">Refactor</div><h3>Only justified seams</h3><p>Extract key/policy objects if needed; keep all focused and regression tests green.</p></div>
+</div>
+
+<h2>Compare algorithms</h2>
+<div class="table-wrap"><table><thead><tr><th>Algorithm</th><th>Strength</th><th>Weakness</th><th>Interview decision</th></tr></thead><tbody>
+<tr><td>Fixed window</td><td>Small, fast, easy to test and implement.</td><td>Can admit nearly 2N requests around a boundary.</td><td>Use when wording is N per discrete window and boundary burst is acceptable.</td></tr>
+<tr><td>Sliding log</td><td>Exact rolling-window semantics.</td><td>Stores every request timestamp; higher memory and cleanup cost.</td><td>Use only when exactness and modest cardinality justify it.</td></tr>
+<tr><td>Sliding-window counter</td><td>Approximate rolling behavior with bounded state.</td><td>More math and approximation.</td><td>Good distributed compromise when smoother limits matter.</td></tr>
+<tr><td>Token bucket</td><td>Explicit burst allowance and steady refill; compact state.</td><td>Requires refill/time arithmetic and policy clarity.</td><td>Best when product requires controlled bursts.</td></tr>
+</tbody></table></div>
+
+<div class="say-this">The requirement says N requests in a configured window and does not mention burst smoothing, so I will start with a fixed window and make its boundary behavior explicit. If the product needs a rolling limit or controlled bursts, I would switch to a sliding-window counter or token bucket through the same interface and add algorithm-specific tests.</div>
+
+<h2>Illustrative Java implementation</h2>
+<pre><code class="language-java">public final class FixedWindowRateLimiter implements RateLimiter {
+    private final Clock clock;
+    private final ConcurrentHashMap&lt;LimitKey, WindowState&gt; states =
+            new ConcurrentHashMap&lt;&gt;();
+
+    public FixedWindowRateLimiter(Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
+    }
+
+    @Override
+    public RateLimitDecision allow(LimitKey key, RateLimitPolicy policy) {
+        if (policy.limit() &lt;= 0 || policy.window().isZero()
+                || policy.window().isNegative()) {
+            throw new IllegalArgumentException("invalid rate-limit policy");
+        }
+
+        long nowMillis = clock.millis();
+        long windowMillis = policy.window().toMillis();
+        long startsAt = Math.floorDiv(nowMillis, windowMillis) * windowMillis;
+        AtomicReference&lt;RateLimitDecision&gt; decision = new AtomicReference&lt;&gt;();
+
+        states.compute(key, (ignored, current) -&gt; {
+            WindowState active = current == null || current.startsAt() != startsAt
+                    ? new WindowState(startsAt, 0)
+                    : current;
+
+            if (active.used() &gt;= policy.limit()) {
+                Duration retryAfter = Duration.ofMillis(
+                        startsAt + windowMillis - nowMillis);
+                decision.set(RateLimitDecision.rejected(0, retryAfter));
+                return active;
+            }
+
+            int nextUsed = active.used() + 1;
+            decision.set(RateLimitDecision.allowed(
+                    policy.limit() - nextUsed,
+                    Duration.ofMillis(startsAt + windowMillis - nowMillis)));
+            return new WindowState(startsAt, nextUsed);
+        });
+        return decision.get();
+    }
+
+    private record WindowState(long startsAt, int used) {}
+}
+
+public record LimitKey(String tenantId,
+                       String customerId,
+                       String endpoint) {}
+
+public record RateLimitPolicy(int limit, Duration window) {}
+
+public record RateLimitDecision(boolean allowed,
+                                int remaining,
+                                Duration retryAfter) {
+    static RateLimitDecision allowed(int remaining, Duration retryAfter) {
+        return new RateLimitDecision(true, remaining, retryAfter);
+    }
+
+    static RateLimitDecision rejected(int remaining, Duration retryAfter) {
+        return new RateLimitDecision(false, remaining, retryAfter);
+    }
+}</code></pre>
+
+<div class="callout warning"><span class="callout-title">Important scope and memory note</span><p><code>ConcurrentHashMap.compute</code> makes the transition atomic for one key inside one JVM. It does not create a global limit across pods. The map also needs bounded lifecycle cleanup in a long-running service. Mention both before the interviewer has to ask.</p></div>
+
+<h2>Focused JUnit tests</h2>
+<pre><code class="language-java">class FixedWindowRateLimiterTest {
+    private final MutableClock clock =
+            MutableClock.at("2026-10-07T09:00:00Z");
+    private final FixedWindowRateLimiter limiter =
+            new FixedWindowRateLimiter(clock);
+    private final RateLimitPolicy policy =
+            new RateLimitPolicy(2, Duration.ofMinutes(1));
+    private final LimitKey key =
+            new LimitKey("tenant-a", "customer-1", "GET:/issues");
+
+    @Test
+    void allowsUpToLimitThenRejects() {
+        assertThat(limiter.allow(key, policy).allowed()).isTrue();
+        assertThat(limiter.allow(key, policy).allowed()).isTrue();
+
+        RateLimitDecision rejected = limiter.allow(key, policy);
+        assertThat(rejected.allowed()).isFalse();
+        assertThat(rejected.remaining()).isZero();
+        assertThat(rejected.retryAfter()).isPositive();
+    }
+
+    @Test
+    void resetsAtNextWindowWithoutSleeping() {
+        limiter.allow(key, policy);
+        limiter.allow(key, policy);
+        assertThat(limiter.allow(key, policy).allowed()).isFalse();
+
+        clock.advance(Duration.ofMinutes(1));
+
+        assertThat(limiter.allow(key, policy).allowed()).isTrue();
+    }
+
+    @Test
+    void isolatesDifferentCustomers() {
+        limiter.allow(key, new RateLimitPolicy(1, Duration.ofMinutes(1)));
+
+        LimitKey other = new LimitKey(
+                "tenant-a", "customer-2", "GET:/issues");
+        assertThat(limiter.allow(other,
+                new RateLimitPolicy(1, Duration.ofMinutes(1))).allowed())
+                .isTrue();
+    }
+}</code></pre>
+
+<h2>AI prompts for this question</h2>
+<div class="prompt-card"><h4>Discovery - find the real integration point</h4><div class="prompt-text">Do not edit. Trace authentication, tenant/customer identity, endpoint normalization, the current request filter/interceptor, RateLimiter abstractions, policy configuration and error-response conventions. Find focused tests and all direct wall-clock calls. Report exact symbols, current behavior and the smallest insertion point. Do not propose Redis until the repository requirement proves a global limit is needed.</div></div>
+<div class="prompt-card"><h4>RED - limit boundary</h4><div class="prompt-text">Do not change production code. Add the smallest failing unit test using an injected or fake clock: for one key and a limit of 2 in one minute, calls 1 and 2 are allowed and call 3 is rejected with remaining 0 and positive retry-after. Run only this test, explain the failure, and stop.</div></div>
+<div class="prompt-card"><h4>GREEN - minimum atomic state transition</h4><div class="prompt-text">Implement only enough in-process fixed-window behavior to pass the focused test. Use the repository's existing interface and time abstraction. Make check-and-increment atomic per key; do not add Redis, queues, multiple algorithms or unrelated filter changes. Show the diff and run the focused test.</div></div>
+<div class="prompt-card"><h4>RED - deterministic reset and key isolation</h4><div class="prompt-text">Add failing tests that advance a fake clock across the window boundary without sleeping and prove that different customer/endpoint keys are independent. Preserve the existing response contract and run the tests before implementation.</div></div>
+<div class="prompt-card"><h4>Concurrency test and review</h4><div class="prompt-text">Design a deterministic test that starts more concurrent calls than the limit for the same key and asserts exactly N are allowed. Review the implementation for read-modify-write races, but do not introduce a global lock if a per-key atomic operation is available.</div></div>
+<div class="prompt-card"><h4>Distributed evolution - discussion only</h4><div class="prompt-text">Without editing code, explain how this exact decision contract would be implemented across many service instances using an atomic Redis operation or script. Cover key design, TTL, fail-open versus fail-closed, retry headers, policy caching and bounded inaccuracy during failover. Clearly separate this from the current in-process acceptance criteria.</div></div>
+<div class="prompt-card"><h4>Final skeptical review</h4><div class="prompt-text">Review the current diff as a P40 code-design interviewer. Check key correctness, window boundaries, injected time, atomicity, quota off-by-one errors, retry-after calculation, map growth, status/header integration, stated single-process guarantee, tests and unrelated edits. Cite concrete failure scenarios. Do not edit.</div></div>
+
+<h2>Likely P40 follow-ups</h2>
+<section class="details-group"><div data-details-actions><button class="mini-button" data-expand type="button">Expand all</button><button class="mini-button" data-collapse type="button">Collapse all</button></div>
+<details><summary>What is wrong with a fixed window?</summary><p>A client can send N requests at the end of one window and N more at the start of the next, creating a 2N boundary burst. If that violates the product requirement, choose a token bucket or sliding-window approach and test the desired semantics.</p></details>
+<details><summary>How would you enforce the limit across many pods?</summary><p>Move the mutable counter/refill state to a shared low-latency store and perform check plus update atomically, commonly with a Redis command sequence or Lua script. Keep the policy cached locally, define TTL and failover behavior, and monitor limiter latency/error rate.</p></details>
+<details><summary>Would you fail open or fail closed if the shared store is down?</summary><p>It is a product/risk decision. For availability protection or abuse controls, fail-open can overload the backend. For a non-critical quota, fail-open may preserve customer availability. Sensitive endpoints may fail closed. State the choice per policy rather than globally.</p></details>
+<details><summary>How do you avoid unbounded in-memory keys?</summary><p>Expire states after their window, run bounded cleanup, use a size-aware cache, or store only active keys with TTL. Also protect against attacker-controlled high-cardinality identities and normalize endpoint keys.</p></details>
+<details><summary>How would you support different plans and endpoints?</summary><p>Resolve a policy using tenant/customer tier plus normalized endpoint/method. Cache policy separately from counters, version it, and define how an in-flight window behaves when a policy changes.</p></details>
+<details><summary>How do you return rate-limit information?</summary><p>Use the repository's standard 429 error plus a retry duration/reset timestamp and remaining quota where appropriate. Do not leak sensitive policy details, and ensure gateway/proxy behavior does not overwrite the headers.</p></details>
+<details><summary>How would you test concurrency reliably?</summary><p>Synchronize worker start with a barrier/latch, submit more calls than the limit, collect decisions, and assert exactly N successes. Run it repeatedly but avoid using timing sleeps as the assertion mechanism.</p></details>
+<details><summary>How would you support bursts?</summary><p>Use a token bucket with capacity, refill rate, last-refill time and current tokens. The atomic transition calculates replenishment and then consumes one token. Inject time and test partial refill and capacity caps.</p></details>
+</section>
+
+<h2>Common mistakes</h2>
+<ul class="checklist warn">
+<li>Using <code>System.currentTimeMillis()</code> directly and sleeping in tests.</li>
+<li>Using a concurrent map but performing a separate non-atomic get and put.</li>
+<li>Returning only a boolean and forcing the filter to re-derive retry timing.</li>
+<li>Ignoring key scope so one endpoint or tenant consumes another's quota.</li>
+<li>Claiming an in-memory implementation is fleet-wide.</li>
+<li>Adding Redis and distributed failure complexity before the local acceptance tests are green.</li>
+<li>Forgetting stale-key cleanup or attacker-controlled key cardinality.</li>
+<li>Letting AI choose an algorithm without first defining burst semantics.</li>
+</ul>
+
+<h2>Two-minute closing summary</h2>
+<div class="say-this">I drove the change from deterministic tests: allow up to N, reject N+1, reset at a fake-clock boundary, isolate keys, and preserve exactly N admissions under concurrent calls. The first implementation is a fixed-window limiter because that matches the stated requirement, with an atomic per-key state transition and a decision object carrying remaining quota and retry timing. I integrated it at the existing authenticated request boundary and kept the guarantee honest: this version is correct within one JVM. For a fleet-wide limit, I would preserve the same contract and move the atomic state transition to Redis or another shared store, with explicit fail-open/fail-closed policy and TTL.</div>
+
+<h2>References</h2>
+<div class="reference-list">
+<div class="reference-item"><a href="https://www.interviewquery.com/guides/atlassian-software-engineer" target="_blank" rel="noreferrer">2026 Atlassian candidate-report synthesis</a><p>Includes a Q3 2026 P40 report describing an API rate limiter as the code-structure and quality round.</p></div>
+<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer" target="_blank" rel="noreferrer">P40 Bangalore offer report</a><p>Lists rate limiter among the candidate's P40 LLD preparation set and provides the exact Snake/Confluence rounds.</p></div>
+<div class="reference-item"><a href="https://www.atlassian.com/company/careers/resources/interviewing/engineering" target="_blank" rel="noreferrer">Atlassian Engineering Interview Guide</a><p>Official problem-solving, communication and design-quality guidance.</p></div>
+</div>
+
+<div class="page-actions"><span>Practice objective: make scope, time and atomicity explicit before discussing distributed scale.</span><button class="review-button" id="review-page" type="button">Mark as reviewed</button></div>
+<nav class="page-nav"><a href="middleware-router.html"><small>Previous</small><strong>Middleware Router</strong></a><a class="next" href="snake-game.html"><small>Next</small><strong>Snake Game -&gt;</strong></a></nav>
+</article></main><aside class="toc-sidebar"><div class="toc-title">On this page</div><div id="page-toc"></div></aside></div><footer id="site-footer"></footer></body></html>
