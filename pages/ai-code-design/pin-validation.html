@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Complete AI-enabled interview simulation for extending a Java banking application with a four-distinct-digit credit-card PIN rule.">
 <title>Four-Distinct-Digit PIN · Atlassian Playbook</title><link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css">
-<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<script defer src="../../js/prism-bundle.js"></script><script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
 <body data-root="../../" data-page="ai-pin" data-title="PIN: Four Distinct Digits"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>PIN Validation</span></nav>
@@ -50,7 +50,7 @@
 </ul>
 
 <h2>Repository discovery before implementation</h2>
-<div class="prompt-card"><h4>TDD plan-mode prompt</h4><div class="prompt-text">Do not edit production code. Trace every code path that creates, changes or resets a credit-card PIN. Identify request DTOs, controllers, services/domain methods, persistence, validation/error conventions and the closest existing tests. Run the focused baseline tests. Then propose the smallest authoritative location for the four-distinct-digit rule and add the smallest failing test first: one valid PIN plus the most diagnostic invalid case (for example a non-adjacent duplicate). Run it and confirm it fails for the expected reason before proposing production changes.</div></div>
+<div class="prompt-card"><h4>Plan-mode prompt</h4><div class="prompt-text">Do not edit. Trace every code path that creates, changes or resets a credit-card PIN. Identify the request DTOs, controllers, services/domain methods, persistence code, existing validation/error conventions and relevant tests. Run the focused existing tests and report any baseline failures. Cite exact files and symbols. Then propose the smallest location for one authoritative four-distinct-digit rule.</div></div>
 
 <p>Verify the answer manually. A plausible Spring Boot flow might look like this, but the real repository is the source of truth:</p>
 <div class="diagram-shell"><div class="diagram-title">Illustrative request flow</div><pre class="mermaid">

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Copyable prompts for all four Atlassian interview rounds."><title>Prompt Library &middot; Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
 <body data-root="../../" data-page="quick-prompts" data-title="Prompt Library"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Quick Revision</a><span aria-hidden="true">/</span><span>Prompt Library</span></nav>
@@ -11,9 +11,6 @@
 <h2>AI code-design sequence</h2>
 <div class="prompt-card"><h4>Map—do not edit</h4><div class="prompt-text">Do not modify files. Trace the reported behavior from entry point through validation, service/domain, persistence and error mapping. Cite exact paths and symbols, identify every mutation path, relevant tests and commands, and mark inferences.</div></div>
 <div class="prompt-card"><h4>Plan the smallest safe change</h4><div class="prompt-text">Do not implement. Propose the smallest repository-consistent change: files and symbols, authoritative placement, error behavior, edge cases, tests, assumptions, security and rollback risk. Avoid dependencies and unrelated refactors.</div></div>
-<div class="prompt-card"><h4>TDD RED - prove the next behavior</h4><div class="prompt-text">Do not modify production code. Using the confirmed acceptance criterion and this repository's existing test conventions, add the smallest focused test that must fail under current behavior. Run only that test, show the exact failure and stop. If it passes, investigate the existing implementation or test path instead of editing blindly.</div></div>
-<div class="prompt-card"><h4>TDD GREEN - minimum change</h4><div class="prompt-text">The focused test fails for the expected reason. Implement only the minimum production change required to make it pass, preserving interfaces, error contracts and repository conventions. Show the diff and focused test result before adding another requirement.</div></div>
-<div class="prompt-card"><h4>P40 LLD selector</h4><div class="prompt-text">Act as a P40 Atlassian Code Design interviewer. Choose one family at random: Agent Rating, Middleware Router, API Rate Limiter or Snake Game. Present it as an existing repository extension, not a blank-sheet problem. Require me to clarify semantics, inspect the repository, drive RED-GREEN-REFACTOR with bounded AI prompts, and explain one concurrency or scaling follow-up. Ask one question at a time.</div></div>
 <div class="prompt-card"><h4>Review the diff</h4><div class="prompt-text">Act as a skeptical senior reviewer. Inspect only the current diff for correctness, placement, security, compatibility, races, error handling, test adequacy and unrelated changes. Give a concrete failure scenario for every concern. Do not edit.</div></div>
 
 <h2>System-design simulation</h2>

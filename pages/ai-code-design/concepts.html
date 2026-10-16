@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Interview-oriented repository engineering concepts for AI-enabled code design."><title>AI Code Design Concepts · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
 <body data-root="../../" data-page="ai-concepts" data-title="AI Code Design Concepts"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">AI-Enabled Code Design</a><span aria-hidden="true">/</span><span>Common Concepts</span></nav>
-<header class="page-header"><div class="page-kicker">Interview-oriented reference</div><h1>Concepts behind a safe repository change</h1><p class="lead">Use these ideas to explain why your code belongs where it does, why your tests are sufficient, and why an AI-generated edit should—or should not—be accepted.</p><div class="page-meta"><span class="badge high">P40 LLD calibrated</span><span class="meta-pill">TDD</span><span class="meta-pill">Determinism</span><span class="meta-pill">Concurrency</span></div></header>
+<header class="page-header"><div class="page-kicker">Interview-oriented reference</div><h1>Concepts behind a safe repository change</h1><p class="lead">Use these ideas to explain why your code belongs where it does, why your tests are sufficient, and why an AI-generated edit should—or should not—be accepted.</p></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
 <h2>Repository mapping</h2>
@@ -48,27 +48,6 @@
 <div class="concept-card"><h3>End-to-end test</h3><p>Proves a critical user flow through the running application but is slower and more fragile.</p><div class="interview-cue"><strong>Use when:</strong> the repository already has this layer and the change crosses UI/API boundaries.</div></div>
 <div class="concept-card"><h3>Regression test</h3><p>Fails on the original bug and passes after the fix. It is the strongest compact evidence that the root cause is addressed.</p><div class="interview-cue"><strong>Say:</strong> “I’ll first write or identify the test that reproduces the reported failure.”</div></div>
 </div>
-
-
-<h2>P40 LLD reasoning patterns</h2>
-<div class="concept-grid">
-<div class="concept-card"><h3>Deterministic contract</h3><p>Ordering, tie-breakers, wildcard precedence, boundary behavior and error semantics must be explicit rather than accidental.</p><div class="interview-cue"><strong>Examples:</strong> rating ties, exact route over wildcard, wall collision, N versus N+1 requests.</div></div>
-<div class="concept-card"><h3>Time as a dependency</h3><p>Monthly leaderboards and rate-limit windows are not reliably testable when production code reads the wall clock directly.</p><div class="interview-cue"><strong>Show it:</strong> inject a Clock/time source and advance it without sleeping.</div></div>
-<div class="concept-card"><h3>Atomic state transition</h3><p>A concurrent collection does not make a multi-step read/check/write sequence atomic.</p><div class="interview-cue"><strong>Show it:</strong> database uniqueness, transaction, compare-and-set or per-key compute.</div></div>
-<div class="concept-card"><h3>Ordered state + membership</h3><p>Stateful simulations often need both order and O(1) membership checks.</p><div class="interview-cue"><strong>Examples:</strong> Snake uses a deque for body order plus a set for collision membership.</div></div>
-<div class="concept-card"><h3>Data structure from access pattern</h3><p>Choose the simplest structure that satisfies the observed route count, lookup frequency, update frequency and complexity target.</p><div class="interview-cue"><strong>Examples:</strong> list scan versus segment Trie; computed leaderboard versus projection.</div></div>
-<div class="concept-card"><h3>Compatibility before cleverness</h3><p>An extension is not correct if it silently changes exact routes, error contracts, existing callers or persistence semantics.</p><div class="interview-cue"><strong>Show it:</strong> run old tests first and last; keep the public API stable unless asked.</div></div>
-</div>
-
-<h2>Question-to-signal map</h2>
-<div class="table-wrap"><table><thead><tr><th>Practice question</th><th>Primary signal</th><th>Tests that expose weak design</th></tr></thead><tbody>
-<tr><td>PIN validation</td><td>Small invariant and layer placement</td><td>Length, repeated digit, non-ASCII/non-digit, null and leading zero policy.</td></tr>
-<tr><td>Password bug</td><td>Diagnosis, security boundary and regression-first fixing</td><td>Raw-versus-encoded comparison, correct encoder wiring, generic failure and no secret logging.</td></tr>
-<tr><td>Agent Rating</td><td>Domain evolution, deterministic ranking, time windows and concurrency</td><td>One rating per ticket, tie-breaker, decimal average, month boundary and concurrent duplicate.</td></tr>
-<tr><td>Middleware Router</td><td>Semantics, precedence and data-structure judgment</td><td>Exact over wildcard, segment count mismatch, normalization, duplicate route and not found.</td></tr>
-<tr><td>API Rate Limiter</td><td>Injected time, atomicity and honest scope</td><td>N/N+1 boundary, window reset without sleep, key isolation and simultaneous admissions.</td></tr>
-<tr><td>Snake Game</td><td>State modelling and transition correctness</td><td>Growth every Nth food, moving into the old tail, self collision, boundary policy and repeated move.</td></tr>
-</tbody></table></div>
 
 <h2>AI review concepts</h2>
 <div class="details-stack">

@@ -89,10 +89,6 @@
         ['ai-overview', 'Round Overview', 'pages/ai-code-design/index.html'],
         ['ai-pin', 'PIN: Four Distinct Digits', 'pages/ai-code-design/pin-validation.html', true],
         ['ai-password', 'Password Bug', 'pages/ai-code-design/password-bug.html', true],
-        ['ai-rating', 'P40: Agent Rating System', 'pages/ai-code-design/agent-rating-system.html', true],
-        ['ai-router', 'P40: Middleware Router', 'pages/ai-code-design/middleware-router.html', true],
-        ['ai-rate-limiter', 'P40: API Rate Limiter', 'pages/ai-code-design/api-rate-limiter.html', true],
-        ['ai-snake', 'P40: Snake Game', 'pages/ai-code-design/snake-game.html', true],
         ['ai-prompts', 'AI Prompts', 'pages/ai-code-design/prompts.html', true],
         ['ai-concepts', 'Common Concepts', 'pages/ai-code-design/concepts.html', true]
       ]
@@ -102,8 +98,8 @@
       items: [
         ['system-overview', 'Round Overview', 'pages/system-design/index.html'],
         ['tagging-system', 'Product-Agnostic Tagging', 'pages/system-design/tagging-system.html', true],
-        ['popular-feed', 'P40: Confluence Engagement Feed', 'pages/system-design/popular-feed.html', true],
         ['jira-board', 'Jira / Trello Board', 'pages/system-design/jira-board.html', true],
+        ['popular-feed', 'Confluence Popular Feed', 'pages/system-design/popular-feed.html', true],
         ['system-followups', 'Follow-up Bank', 'pages/system-design/follow-ups.html', true],
         ['system-concepts', 'Concept Reference', 'pages/system-design/concepts.html', true],
         ['candidate-questions', 'Candidate-Reported Topics', 'pages/system-design/candidate-reported.html', true]
@@ -133,7 +129,6 @@
     {
       title: 'Revision Tools',
       items: [
-        ['official-guide', 'Official Atlassian Guide', 'pages/quick-revision/official-guide.html'],
         ['quick-checklists', 'Interview Checklists', 'pages/quick-revision/checklists.html'],
         ['quick-prompts', 'Prompt Library', 'pages/quick-revision/prompts.html']
       ]
@@ -145,16 +140,12 @@
     ['AI-Enabled Code Design Overview', 'AI Code Design', 'Repository workflow, evaluation signals and a 60-minute execution plan.', 'pages/ai-code-design/index.html', 'repository hackerrank plan agent diff tests'],
     ['PIN: Four Distinct Digits', 'AI Code Design', 'Complete interview simulation, Java solution, tests, edge cases and follow-ups.', 'pages/ai-code-design/pin-validation.html', 'pin java distinct digits spring boot validation leading zero'],
     ['Password Functionality Bug', 'AI Code Design', 'Root-cause workflow and representative BCrypt login bug simulation.', 'pages/ai-code-design/password-bug.html', 'password bcrypt encoder matches authentication frontend backend validation'],
-    ['P40 Agent Rating System', 'AI Code Design', 'TDD practice for ratings, deterministic leaderboard, monthly windows and concurrency.', 'pages/ai-code-design/agent-rating-system.html', 'p40 rating customer care agent average leaderboard junit concurrency monthly'],
-    ['P40 Middleware Router', 'AI Code Design', 'TDD practice for wildcard matching, exact precedence, normalization and Trie trade-offs.', 'pages/ai-code-design/middleware-router.html', 'p40 middleware router wildcard dynamic route mapping trie precedence addRoute getRoute'],
-    ['P40 API Rate Limiter', 'AI Code Design', 'TDD practice for injected time, quota boundaries, atomic counters and distributed evolution.', 'pages/ai-code-design/api-rate-limiter.html', 'p40 api rate limiter fixed window token bucket clock concurrency retry after 429'],
-    ['P40 Snake Game', 'AI Code Design', 'TDD practice for Nth-food growth, collision, boundary policy and O1 movement.', 'pages/ai-code-design/snake-game.html', 'p40 snake game nth food nextMove collision deque set typescript'],
     ['AI Prompt Library', 'AI Code Design', 'Bounded prompts for discovery, planning, implementation, tests and review.', 'pages/ai-code-design/prompts.html', 'ai prompts plan mode agent mode review diff'],
     ['AI Code Design Concepts', 'AI Code Design', 'Repository mapping, architectural placement, validation and testing concepts.', 'pages/ai-code-design/concepts.html', 'controller service repository test pyramid architecture'],
     ['Full-Stack System Design Overview', 'System Design', 'A repeatable 60-minute framework and full-stack design canvas.', 'pages/system-design/index.html', 'framework requirements scale api frontend backend tradeoffs'],
     ['Product-Agnostic Tagging System', 'Detailed Playbook', 'Jira, Confluence and Bitbucket tags, permissions, search and popular tags.', 'pages/system-design/tagging-system.html', 'tagging top k redis kafka permission tenant search indexing'],
-    ['P40 Confluence Engagement Feed', 'Detailed Playbook', 'Personalized most-engaged content, exclusions, permission filtering and stable ranking.', 'pages/system-design/popular-feed.html', 'p40 confluence engaged documents leaderboard unread authored top k stream redis'],
-    ['Jira / Trello Board', 'Detailed Playbook', 'P40-calibrated ordering, optimistic drag-and-drop, concurrency and real-time updates.', 'pages/system-design/jira-board.html', 'jira trello p40 lexo rank optimistic ui websocket concurrency'],
+    ['Jira / Trello Board', 'Detailed Playbook', 'Ordering, optimistic drag-and-drop, concurrency and real-time updates.', 'pages/system-design/jira-board.html', 'jira trello lexo rank optimistic ui websocket concurrency'],
+    ['Confluence Popular Feed', 'Detailed Playbook', 'Event ingestion, rolling rank, permission filtering and stable UI updates.', 'pages/system-design/popular-feed.html', 'feed top k stream processing redis sse popularity'],
     ['System Design Follow-up Bank', 'System Design', 'High-frequency interviewer follow-ups with answer frameworks.', 'pages/system-design/follow-ups.html', 'database down duplicate events scaling cache permissions'],
     ['System Design Concepts', 'Reference', 'Interview-oriented distributed systems and frontend concepts.', 'pages/system-design/concepts.html', 'caching indexes sql nosql websocket sse idempotency consistency'],
     ['Candidate-Reported Questions', 'Research', 'Chat, Notion, scheduler, Google Sheets and full-stack discussion topics.', 'pages/system-design/candidate-reported.html', 'candidate reported chat notion scheduler sheets auth'],
@@ -170,7 +161,6 @@
     ['Practice Note Builder', 'Values', 'Loss-safe optional notes with autosave, TXT/JSON export and import.', 'pages/values/intake.html', 'notes export import backup metrics rehearsal'],
     ['Values Mock Interview', 'Values', 'Interactive five-value mock, timers, follow-ups and scorecard.', 'pages/values/mock.html', 'mock values timer open customer team change'],
     ['Quick Revision', 'Revision', 'Ten-minute and twenty-minute review routes across all four rounds.', 'pages/quick-revision/index.html', 'revision cheat sheet manager values opening closing'],
-    ['Official Atlassian Guide', 'Revision', 'Official interview signals for TDD, system design, management and values.', 'pages/quick-revision/official-guide.html', 'official guide tdd management values system design'],
     ['Interview Checklists', 'Revision', 'Before, during and final-review checklists for technical and behavioral rounds.', 'pages/quick-revision/checklists.html', 'checklist testing diff design star values'],
     ['Prompt Library', 'Revision', 'High-value AI prompts for technical, management and values practice.', 'pages/quick-revision/prompts.html', 'prompt copy interview ai mock behavioral']
   ];
@@ -621,46 +611,8 @@ ${value}
   async function renderMermaid() {
     if (!window.mermaid || !$$('.mermaid').length) return;
     try {
-      window.mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'loose',
-        theme: 'base',
-        themeVariables: {
-          primaryColor: '#e8f1ff',
-          primaryTextColor: '#172033',
-          primaryBorderColor: '#5b7cfa',
-          secondaryColor: '#eefbf6',
-          secondaryTextColor: '#172033',
-          secondaryBorderColor: '#38a169',
-          tertiaryColor: '#fff6df',
-          tertiaryTextColor: '#172033',
-          tertiaryBorderColor: '#d69e2e',
-          lineColor: '#64748b',
-          textColor: '#172033',
-          mainBkg: '#e8f1ff',
-          nodeBorder: '#5b7cfa',
-          clusterBkg: '#f5f7ff',
-          clusterBorder: '#a7b5dd',
-          edgeLabelBackground: '#ffffff',
-          fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
-        },
-        flowchart: { curve: 'basis', htmlLabels: true, padding: 16, useMaxWidth: false },
-        sequence: { useMaxWidth: false, mirrorActors: false }
-      });
+      window.mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral', flowchart: { curve: 'basis', htmlLabels: true }, sequence: { useMaxWidth: true } });
       await window.mermaid.run({ querySelector: '.mermaid' });
-      $$('.mermaid').forEach((el) => {
-        const svg = el.querySelector('svg');
-        if (!svg) return;
-        svg.removeAttribute('width');
-        svg.removeAttribute('height');
-        svg.style.width = 'max-content';
-        svg.style.minWidth = '720px';
-        svg.style.maxWidth = 'none';
-        svg.style.height = 'auto';
-        svg.style.display = 'block';
-        svg.style.margin = '0 auto';
-        el.scrollLeft = 0;
-      });
     } catch (error) {
       console.warn('Mermaid rendering failed:', error);
     }

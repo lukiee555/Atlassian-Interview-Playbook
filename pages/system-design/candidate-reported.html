@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Additional full-stack and system design questions publicly reported by Atlassian candidates."><title>Candidate-Reported Topics · Atlassian Playbook</title>
-<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261007-p40-final"></script></head>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../css/style.css"><script defer src="../../js/prism-bundle.js"></script><script defer src="../../js/app.js?v=20261003-3"></script></head>
 <body data-root="../../" data-page="candidate-questions" data-title="Candidate-Reported Topics"><div id="reading-progress"></div><div id="site-header"></div>
 <div class="page-layout"><aside id="site-sidebar"></aside><main id="main-content" class="main-column"><article class="article-content">
 <nav class="breadcrumbs"><a href="../../index.html">Home</a><span aria-hidden="true">/</span><a href="index.html">Full-Stack System Design</a><span aria-hidden="true">/</span><span>Candidate-Reported Topics</span></nav>
@@ -9,13 +9,13 @@
 <div class="page-meta"><span class="badge verified">Public candidate reports</span><span class="meta-pill">Concise preparation</span><span class="meta-pill">Source-labelled</span></div></header>
 <div class="mobile-toc"><details><summary>On this page</summary><div id="mobile-toc-list"></div></details></div>
 
-<div class="callout warning"><span class="callout-title">Evidence and interpretation</span><p>A candidate report confirms only what that candidate described. The research priority used here is: direct public P40 reports (including the detailed LeetCode offer report), then recent P40/P40-P50 reports, then broader full-stack reports and editorial aggregates. Where a source names a broad system without exact requirements, this page provides a practice outline rather than claiming the candidate's undisclosed solution.</p></div>
+<div class="callout warning"><span class="callout-title">Evidence and interpretation</span><p>A candidate report confirms only what that candidate described. Where a report names a broad system without exact requirements, this page provides a preparation outline and labels it as an expected approach—not as the candidate’s undisclosed solution.</p></div>
 
 <h2>Detailed playbooks already covered</h2>
 <div class="card-grid">
-<article class="card"><div class="card-number">Priority 1 - repeated direct P40 HLD</div><h3>Product-agnostic tagging</h3><p>Cross-product tags, content lookup, popular tags, permissions, APIs, schema, queues and future-product extensibility.</p><a class="card-link" href="tagging-system.html">Open detailed playbook &rarr;</a></article>
-<article class="card"><div class="card-number">Priority 2 - exact P40 offer-round variant</div><h3>Confluence engagement homepage</h3><p>Most-engaged documents with authored/read exclusions, permission filtering, bounded overfetch and stable ranking UX.</p><a class="card-link" href="popular-feed.html">Open detailed playbook &rarr;</a></article>
-<article class="card"><div class="card-number">Priority 3 - full-stack role transfer</div><h3>Jira / Trello board</h3><p>Cards, statuses, drag-and-drop ordering, optimistic UI, workflow rules and concurrent collaboration.</p><a class="card-link" href="jira-board.html">Open detailed playbook &rarr;</a></article>
+<article class="card"><div class="card-number">Repeatedly reported</div><h3>Product-agnostic tagging</h3><p>Cross-product tags, content lookup, popular tags, permissions, Top-K and future-product extensibility.</p><a class="card-link" href="tagging-system.html">Open detailed playbook →</a></article>
+<article class="card"><div class="card-number">Full-stack candidate report</div><h3>Jira / Trello board</h3><p>Cards, statuses, priorities, drag-and-drop ordering, optimistic UI and collaboration.</p><a class="card-link" href="jira-board.html">Open detailed playbook →</a></article>
+<article class="card"><div class="card-number">Recent candidate report</div><h3>Popular-content feed</h3><p>Engagement events, Top-N ranking and real-time client updates.</p><a class="card-link" href="popular-feed.html">Open detailed playbook →</a></article>
 </div>
 
 <h2>1. Real-time chat system</h2>
@@ -160,9 +160,9 @@
 
 <h2>Question-priority matrix</h2>
 <div class="table-wrap"><table><thead><tr><th>Topic</th><th>Practice depth</th><th>Why</th></tr></thead><tbody>
-<tr><td>Product-agnostic tagging</td><td>Two full 60-minute mocks</td><td>Repeated across direct P40 reports, including LeetCode; strongest P40 probability.</td></tr>
-<tr><td>Confluence engagement homepage</td><td>One full mock + exclusion/schema drill</td><td>Exact recent P40 offer-round variant; tests candidate generation, per-user read/author filtering and permissions.</td></tr>
-<tr><td>Jira/Trello board</td><td>One full mock + follow-up drill</td><td>Best full-stack role-transfer problem for UI state, ordering, workflow and realtime collaboration.</td></tr>
+<tr><td>Tagging system</td><td>Two full 60-minute mocks</td><td>Most repeatedly reported and broadest Atlassian fit.</td></tr>
+<tr><td>Jira/Trello board</td><td>One full mock + follow-up drill</td><td>Strong full-stack signal: UI, order, realtime, workflow.</td></tr>
+<tr><td>Popular feed</td><td>One full mock</td><td>Events, Top-K, frontend freshness and permissions.</td></tr>
 <tr><td>Realtime chat</td><td>45-minute design</td><td>Reported for frontend-heavy full-stack; reusable realtime patterns.</td></tr>
 <tr><td>Notion/Confluence notes</td><td>45-minute design</td><td>Document model, editor state and collaboration.</td></tr>
 <tr><td>Job scheduler</td><td>30-minute backend drill</td><td>Retries, leases, idempotency and distributed work.</td></tr>
@@ -172,9 +172,6 @@
 
 <h2>References</h2>
 <div class="reference-list">
-<div class="reference-item"><a href="https://leetcode.com/discuss/post/7070747/atlassian-p40-india-offer-by-anonymous_u-6mbf/" target="_blank" rel="noreferrer">LeetCode: P40 India offer</a><p>Direct report of the product-agnostic Tagging Management Service and the design areas emphasized.</p></div>
-<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-p40-bangalore-interview-exp-offer" target="_blank" rel="noreferrer">P40 Bangalore offer report</a><p>Direct report of the Confluence most-engaged homepage with authored and already-read exclusions.</p></div>
-<div class="reference-item"><a href="https://interviewexperiences.in/experience/atlassian/atlassian-software-engineer-p40-p50" target="_blank" rel="noreferrer">P40/P50 candidate report</a><p>Independently reports product-agnostic content tagging as the system-design question.</p></div>
 <div class="reference-item"><a href="https://medium.com/@nitesh14028/atlassian-interview-experience-oct-25-to-feb-26-cd0c75481739" target="_blank" rel="noreferrer">2026 frontend-heavy full-stack candidate report</a><p>Real-time chat, request lifecycle, authentication, offline resilience and frontend performance themes.</p></div>
 <div class="reference-item"><a href="https://medium.com/@ritikajoshi141/i-interviewed-at-atlassian-heres-everything-you-need-to-know-b126553a03d5" target="_blank" rel="noreferrer">Full-stack candidate report</a><p>Describes end-to-end web/system thinking and full-stack craft discussion.</p></div>
 <div class="reference-item"><a href="https://www.glassdoor.com/Interview/Atlassian-Full-Stack-Software-Engineer-Interview-Questions-EI_IE115699.0%2C9_KO10%2C38.htm" target="_blank" rel="noreferrer">Glassdoor full-stack interview reports</a><p>Public listings associated with Jira-board and Notion-style topics; access may vary.</p></div>
